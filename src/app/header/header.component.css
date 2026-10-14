@@ -1,0 +1,15 @@
+.brand {
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.brand-buster {
+  color: var(--bs-warning);
+}
+
+.nav-link.active {
+  text-decoration: underline;
+  text-underline-offset: 0.4em;
+  text-decoration-thickness: 2px;
+}

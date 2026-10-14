@@ -1,0 +1,6 @@
+/* Sticky footer: the main area grows so the footer stays at the bottom of short pages. */
+:host {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}

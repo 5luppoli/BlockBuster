@@ -1,0 +1,29 @@
+<header class="navbar bg-dark border-bottom border-warning border-3" data-bs-theme="dark">
+  <nav class="container" aria-label="Main navigation">
+    <a class="navbar-brand brand" routerLink="/">
+      <span class="brand-block">Block</span><span class="brand-buster">Buster</span>
+    </a>
+
+    <ul class="navbar-nav flex-row gap-3">
+      <li class="nav-item">
+        <a
+          class="nav-link"
+          routerLink="/"
+          routerLinkActive="active"
+          [routerLinkActiveOptions]="{ exact: true }"
+          ariaCurrentWhenActive="page"
+          >Shop</a
+        >
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" routerLink="/cart" routerLinkActive="active" ariaCurrentWhenActive="page">
+          Cart
+          <span class="badge rounded-pill text-bg-warning" data-testid="cart-count">
+            {{ cart.itemCount() }}
+          </span>
+          <span class="visually-hidden">items in cart</span>
+        </a>
+      </li>
+    </ul>
+  </nav>
+</header>

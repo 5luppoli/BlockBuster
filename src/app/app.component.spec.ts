@@ -1,29 +1,25 @@
 import { TestBed } from '@angular/core/testing';
 import { RouterModule } from '@angular/router';
-import { App } from './app.component';
 
-describe('App', () => {
+import { AppComponent } from './app.component';
+import { HeaderComponent } from './header/header.component';
+
+describe('AppComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [
-        RouterModule.forRoot([])
-      ],
-      declarations: [
-        App
-      ],
+      imports: [RouterModule.forRoot([])],
+      declarations: [AppComponent, HeaderComponent],
     }).compileComponents();
   });
 
-  it('should create the app', () => {
-    const fixture = TestBed.createComponent(App);
-    const app = fixture.componentInstance;
-    expect(app).toBeTruthy();
-  });
-
-  it('should render title', () => {
-    const fixture = TestBed.createComponent(App);
+  it('renders the brand, navigation and the simulated-purchase disclaimer', () => {
+    const fixture = TestBed.createComponent(AppComponent);
     fixture.detectChanges();
-    const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('h1')?.textContent).toContain('Hello, block-buster');
+    const page = fixture.nativeElement as HTMLElement;
+
+    expect(page.querySelector('.navbar-brand')?.textContent).toContain('BlockBuster');
+    expect(page.querySelector('nav')?.textContent).toContain('Shop');
+    expect(page.querySelector('nav')?.textContent).toContain('Cart');
+    expect(page.querySelector('footer')?.textContent).toContain('no payment is taken');
   });
 });

@@ -1,1 +1,12 @@
-/* You can add global styles to this file, and also import other style files */
+/* Global styles. Bootstrap's CSS is loaded before this file (angular.json → styles). */
+
+body {
+  background-color: var(--bs-tertiary-bg);
+}
+
+/* A clearly visible keyboard focus ring on every interactive element. */
+a:focus-visible,
+button:focus-visible {
+  outline: 3px solid var(--bs-warning);
+  outline-offset: 2px;
+}

@@ -12,12 +12,12 @@
         "@schematics/angular:component": {
           "standalone": false,
           "type": "component",
-          "addTypeToClassName": false
+          "addTypeToClassName": true
         },
         "@schematics/angular:directive": {
           "standalone": false,
           "type": "directive",
-          "addTypeToClassName": false
+          "addTypeToClassName": true
         },
         "@schematics/angular:pipe": {
           "standalone": false,
@@ -25,7 +25,7 @@
         },
         "@schematics/angular:service": {
           "type": "service",
-          "addTypeToClassName": false
+          "addTypeToClassName": true
         },
         "@schematics/angular:guard": {
           "typeSeparator": "."
@@ -59,6 +59,7 @@
               }
             ],
             "styles": [
+              "node_modules/bootstrap/dist/css/bootstrap.min.css",
               "src/styles.css"
             ]
           },
@@ -67,7 +68,7 @@
               "budgets": [
                 {
                   "type": "initial",
-                  "maximumWarning": "500kB",
+                  "maximumWarning": "600kB",
                   "maximumError": "1MB"
                 },
                 {
