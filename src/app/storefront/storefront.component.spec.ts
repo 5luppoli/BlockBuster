@@ -93,6 +93,90 @@ describe('StorefrontComponent', () => {
     expect(page.textContent).toContain('The catalogue is empty');
   });
 
+  describe('filters', () => {
+    async function type(selector: string, value: string): Promise<void> {
+      const input = page.querySelector(selector) as HTMLInputElement;
+      input.value = value;
+      input.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+      await fixture.whenStable();
+      fixture.detectChanges();
+    }
+
+    async function chooseShelf(label: string): Promise<void> {
+      const select = page.querySelector('#shelf') as HTMLSelectElement;
+      const option = Array.from(select.options).find((o) => o.textContent?.trim() === label);
+      select.value = option?.value ?? '';
+      select.dispatchEvent(new Event('change'));
+      fixture.detectChanges();
+      await fixture.whenStable();
+      fixture.detectChanges();
+    }
+
+    function resultCount(): string {
+      return (page.querySelector('[data-testid="result-count"]')?.textContent ?? '').replace(/\s+/g, ' ').trim();
+    }
+
+    beforeEach(render);
+
+    it('starts with the shelf placeholder selected and every product visible', () => {
+      const select = page.querySelector('#shelf') as HTMLSelectElement;
+
+      expect(select.options[select.selectedIndex].textContent?.trim()).toBe('Select a shelf…');
+      expect(resultCount()).toBe('Showing 4 of 4 products');
+    });
+
+    it('filters by partial name as the user types', async () => {
+      await type('#search', 'ta');
+
+      expect(cardTitles()).toEqual(['Table Lamp']);
+    });
+
+    it('filters by shelf, and "All shelves" shows everything again', async () => {
+      await chooseShelf('Films');
+      expect(cardTitles()).toEqual(['iPhone X']);
+
+      await chooseShelf('All shelves');
+      expect(cardTitles().length).toBe(4);
+    });
+
+    it('combines search, shelf and price without clearing each other', async () => {
+      await chooseShelf('Books');
+      await type('#max-price', '20');
+      expect(cardTitles()).toEqual(['Plant Pot']);
+
+      await type('#search', 'lamp');
+      expect(cardTitles()).toEqual([]);
+      expect((page.querySelector('#max-price') as HTMLInputElement).value).toBe('20');
+      expect(fixture.componentInstance.selectedShelf()).toBe('Books');
+    });
+
+    it('explains an invalid price range and ignores it', async () => {
+      await type('#min-price', '100');
+      await type('#max-price', '10');
+
+      expect(page.querySelector('#price-error')?.textContent).toContain('cannot be higher');
+      expect(cardTitles().length).toBe(4);
+    });
+
+    it('shows a no-match message, and Reset filters restores the full catalogue', async () => {
+      await type('#search', 'zzzz');
+      expect(page.textContent).toContain('No products match your filters.');
+
+      const reset = Array.from(page.querySelectorAll('button')).find(
+        (b) => b.textContent?.trim() === 'Reset filters',
+      ) as HTMLButtonElement;
+      reset.click();
+      fixture.detectChanges();
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      expect(cardTitles().length).toBe(4);
+      expect((page.querySelector('#search') as HTMLInputElement).value).toBe('');
+      expect(fixture.componentInstance.selectedShelf()).toBeNull();
+    });
+  });
+
   it('adds a product to the shared cart and confirms it', async () => {
     await render();
     const cart = TestBed.inject(CartService);
