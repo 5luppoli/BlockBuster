@@ -1,1 +1,32 @@
-<p>order-confirmation works!</p>
+@if (cart.lastOrder(); as order) {
+  <section class="confirmation mx-auto text-center" aria-labelledby="confirmation-heading">
+    <p class="display-4 mb-2" aria-hidden="true">✓</p>
+    <h1 id="confirmation-heading" class="h2 fw-bold">Your simulated purchase was successful</h1>
+    <p class="text-body-secondary">
+      This is a demonstration shop: no payment was taken and no real order was placed.
+    </p>
+
+    <div class="card shadow-sm text-start my-4">
+      <ul class="list-group list-group-flush">
+        @for (line of order.lines; track line.product.id) {
+          <li class="list-group-item d-flex justify-content-between gap-3">
+            <span>{{ line.quantity }} × {{ line.product.title }}</span>
+            <span class="text-nowrap">{{ line.subtotal | currency: 'USD' }}</span>
+          </li>
+        }
+      </ul>
+      <div class="card-footer d-flex justify-content-between fw-bold">
+        <span data-testid="order-count">{{ order.itemCount }} {{ order.itemCount === 1 ? 'item' : 'items' }}</span>
+        <span data-testid="order-total">{{ order.total | currency: 'USD' }}</span>
+      </div>
+    </div>
+
+    <a routerLink="/" class="btn btn-warning btn-lg fw-semibold">Back to the shop</a>
+  </section>
+} @else {
+  <section class="confirmation mx-auto text-center py-5" aria-labelledby="no-order-heading">
+    <h1 id="no-order-heading" class="h3">No recent purchase</h1>
+    <p class="text-body-secondary">There is no completed purchase to confirm.</p>
+    <a routerLink="/" class="btn btn-warning fw-semibold">Back to the shop</a>
+  </section>
+}

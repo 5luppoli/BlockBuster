@@ -1,5 +1,15 @@
 <h1 class="display-6 fw-bold mb-4">Your cart</h1>
 
+<div aria-live="polite">
+  @if (lastItemPurchase(); as purchase) {
+    <div class="alert alert-success" data-testid="item-purchase-message">
+      <strong>Simulated purchase complete:</strong>
+      {{ purchase.lines[0].quantity }} × {{ purchase.lines[0].product.title }}
+      ({{ purchase.total | currency: 'USD' }}). This is a demo: no payment was taken.
+    </div>
+  }
+</div>
+
 @if (cart.isEmpty()) {
   <div class="card card-body text-center py-5 shadow-sm">
     <p class="fs-5 mb-3">Your cart is empty.</p>
@@ -50,6 +60,14 @@
               >
                 Remove
               </button>
+              <button
+                type="button"
+                class="btn btn-sm btn-success"
+                [attr.aria-label]="'Buy ' + line.product.title"
+                (click)="buy(line.product.id)"
+              >
+                Buy
+              </button>
             </div>
           </li>
         }
@@ -68,6 +86,18 @@
             <dt>Total</dt>
             <dd class="fw-bold mb-0" data-testid="total">{{ cart.total() | currency: 'USD' }}</dd>
           </dl>
+
+          <button
+            type="button"
+            class="btn btn-success btn-lg w-100 mt-3"
+            [disabled]="cart.isEmpty()"
+            (click)="buyAll()"
+          >
+            Buy All
+          </button>
+          <p class="small text-body-secondary mt-2 mb-0">
+            Simulated checkout: no payment is taken and no real order is placed.
+          </p>
         </div>
       </aside>
     </div>
