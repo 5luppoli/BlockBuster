@@ -1,1 +1,75 @@
-<p>cart works!</p>
+<h1 class="display-6 fw-bold mb-4">Your cart</h1>
+
+@if (cart.isEmpty()) {
+  <div class="card card-body text-center py-5 shadow-sm">
+    <p class="fs-5 mb-3">Your cart is empty.</p>
+    <div>
+      <a routerLink="/" class="btn btn-warning fw-semibold">Browse the shop</a>
+    </div>
+  </div>
+} @else {
+  <div class="row g-4">
+    <div class="col-12 col-lg-8">
+      <ul class="list-group shadow-sm" aria-label="Cart items">
+        @for (line of cart.lines(); track line.product.id) {
+          <li class="list-group-item py-3 cart-line">
+            <img
+              class="cart-thumb"
+              [src]="line.product.thumbnail"
+              [alt]="line.product.title"
+              width="72"
+              height="72"
+            />
+
+            <div class="cart-info">
+              <h2 class="h6 mb-1">{{ line.product.title }}</h2>
+              <p class="small text-body-secondary mb-0">
+                {{ line.product.shelf }} · {{ line.product.price | currency: 'USD' }} each
+              </p>
+            </div>
+
+            <div class="cart-numbers">
+              <span>Qty <strong data-testid="quantity">{{ line.quantity }}</strong></span>
+              <span class="fw-bold" data-testid="subtotal">{{ line.subtotal | currency: 'USD' }}</span>
+            </div>
+
+            <div class="cart-actions" role="group" [attr.aria-label]="'Actions for ' + line.product.title">
+              <button
+                type="button"
+                class="btn btn-sm btn-outline-secondary"
+                [attr.aria-label]="'Add one more ' + line.product.title"
+                (click)="cart.increaseQuantity(line.product.id)"
+              >
+                +1
+              </button>
+              <button
+                type="button"
+                class="btn btn-sm btn-outline-danger"
+                [attr.aria-label]="'Remove ' + line.product.title"
+                (click)="cart.removeItem(line.product.id)"
+              >
+                Remove
+              </button>
+            </div>
+          </li>
+        }
+      </ul>
+    </div>
+
+    <div class="col-12 col-lg-4">
+      <aside class="card shadow-sm" aria-labelledby="summary-heading">
+        <div class="card-body">
+          <h2 id="summary-heading" class="h5">Order summary</h2>
+          <dl class="d-flex justify-content-between mb-1">
+            <dt class="fw-normal">Items</dt>
+            <dd class="mb-0" data-testid="item-count">{{ cart.itemCount() }}</dd>
+          </dl>
+          <dl class="d-flex justify-content-between fs-5 mb-0">
+            <dt>Total</dt>
+            <dd class="fw-bold mb-0" data-testid="total">{{ cart.total() | currency: 'USD' }}</dd>
+          </dl>
+        </div>
+      </aside>
+    </div>
+  </div>
+}

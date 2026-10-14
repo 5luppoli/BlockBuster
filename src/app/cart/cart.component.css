@@ -1,0 +1,32 @@
+/* One cart line: image | name | quantity + subtotal | buttons. Wraps onto two rows on phones. */
+.cart-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1rem;
+}
+
+.cart-thumb {
+  width: 72px;
+  height: 72px;
+  object-fit: contain;
+  background-color: var(--bs-white);
+  border: 1px solid var(--bs-border-color);
+  border-radius: var(--bs-border-radius);
+}
+
+.cart-info {
+  flex: 1 1 12rem;
+  min-width: 0;
+}
+
+.cart-numbers {
+  display: flex;
+  gap: 1rem;
+  white-space: nowrap;
+}
+
+.cart-actions {
+  display: flex;
+  gap: 0.5rem;
+}
