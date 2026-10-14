@@ -40,7 +40,10 @@
 
             <div class="cart-numbers">
               <span>Qty <strong data-testid="quantity">{{ line.quantity }}</strong></span>
-              <span class="fw-bold" data-testid="subtotal">{{ line.subtotal | currency: 'USD' }}</span>
+              <span>
+                Subtotal
+                <strong data-testid="subtotal">{{ line.subtotal | currency: 'USD' }}</strong>
+              </span>
             </div>
 
             <div class="cart-actions" role="group" [attr.aria-label]="'Actions for ' + line.product.title">
