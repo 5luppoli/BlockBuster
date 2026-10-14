@@ -1,1 +1,61 @@
-<p>storefront works!</p>
+<section aria-labelledby="shop-heading">
+  <div class="mb-4">
+    <h1 id="shop-heading" class="display-6 fw-bold">Books, films and records</h1>
+    <p class="lead mb-3">Browse the BlockBuster shelves, starting with books.</p>
+
+    <div class="alert alert-info small mb-0" role="note">
+      <strong>Demo catalogue.</strong> DummyJSON sells no media, so BlockBuster places some of its
+      general products on media shelves. Each card shows its original DummyJSON category.
+      <ul class="mb-0 mt-1">
+        @for (shelf of shelves; track shelf) {
+          <li>
+            <strong>{{ shelf }}</strong>: {{ shelfSources[shelf].join(', ') }}
+          </li>
+        }
+      </ul>
+    </div>
+  </div>
+
+  @switch (loadState()) {
+    @case ('loading') {
+      <p class="text-center py-5" role="status">
+        <span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
+        Loading products…
+      </p>
+    }
+
+    @case ('error') {
+      <div class="alert alert-danger d-flex flex-wrap align-items-center gap-3" role="alert">
+        <span class="flex-grow-1">
+          We couldn't load the catalogue. Check your connection and try again.
+        </span>
+        <button type="button" class="btn btn-outline-danger" (click)="loadProducts()">
+          Try again
+        </button>
+      </div>
+    }
+
+    @case ('loaded') {
+      @if (products().length === 0) {
+        <p class="text-center py-5 fs-5">The catalogue is empty right now. Please come back later.</p>
+      } @else {
+        <div aria-live="polite">
+          @if (lastAddedTitle(); as title) {
+            <div class="alert alert-success py-2 d-flex flex-wrap gap-2 align-items-center">
+              <span class="flex-grow-1"><strong>{{ title }}</strong> added to cart.</span>
+              <a routerLink="/cart" class="alert-link">View cart</a>
+            </div>
+          }
+        </div>
+
+        <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-xl-4 g-4">
+          @for (product of products(); track product.id) {
+            <div class="col">
+              <app-product-card [product]="product" (addToCart)="addToCart($event)"></app-product-card>
+            </div>
+          }
+        </div>
+      }
+    }
+  }
+</section>
