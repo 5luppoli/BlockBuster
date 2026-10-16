@@ -1,18 +1,11 @@
-/** The three BlockBuster shelves. A literal union type (course L2 s.10). */
-export type MediaShelf = 'Books' | 'Films' | 'Records';
-
-/** Shelves in display order: books first, then films, then records. */
-export const MEDIA_SHELVES: MediaShelf[] = ['Books', 'Films', 'Records'];
-
-/** A product as the BlockBuster app uses it, after mapping the DummyJSON data. */
+/** A product as the BlockBuster app uses it, after mapping the API data. */
 export interface Product {
   id: number;
   title: string;
   price: number;
   thumbnail: string;
-  shelf: MediaShelf;
-  /** The original DummyJSON category, always shown to the user for transparency. */
-  sourceCategory: string;
+  /** Human-readable category shown to the user, e.g. "Laptops" or "Women's Shoes". */
+  category: string;
 }
 
 /** One product exactly as DummyJSON returns it with `select=id,title,price,category,thumbnail`. */

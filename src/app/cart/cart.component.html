@@ -34,7 +34,7 @@
             <div class="cart-info">
               <h2 class="h6 mb-1">{{ line.product.title }}</h2>
               <p class="small text-body-secondary mb-0">
-                {{ line.product.shelf }} · {{ line.product.price | currency: 'USD' }} each
+                {{ line.product.category }} · {{ line.product.price | currency: 'USD' }} each
               </p>
             </div>
 
@@ -47,6 +47,16 @@
             </div>
 
             <div class="cart-actions" role="group" [attr.aria-label]="'Actions for ' + line.product.title">
+              <!-- Disabled at 1 so repeated clicks never remove the line by accident: Remove does that. -->
+              <button
+                type="button"
+                class="btn btn-sm btn-outline-secondary"
+                [attr.aria-label]="'Remove one ' + line.product.title"
+                [disabled]="line.quantity <= 1"
+                (click)="cart.decreaseQuantity(line.product.id)"
+              >
+                −1
+              </button>
               <button
                 type="button"
                 class="btn btn-sm btn-outline-secondary"

@@ -5,13 +5,12 @@ import { Product } from '../models/product.model';
 import { CartService } from '../services/cart.service';
 import { HeaderComponent } from './header.component';
 
-const book: Product = {
+const product: Product = {
   id: 1,
   title: 'Plant Pot',
   price: 14.99,
   thumbnail: 'pot.webp',
-  shelf: 'Books',
-  sourceCategory: 'home-decoration',
+  category: 'Home Decoration',
 };
 
 describe('HeaderComponent', () => {
@@ -39,8 +38,8 @@ describe('HeaderComponent', () => {
   });
 
   it('updates the badge with the total quantity when the cart changes', () => {
-    cart.addProduct(book);
-    cart.addProduct(book);
+    cart.addProduct(product);
+    cart.addProduct(product);
     fixture.detectChanges();
 
     expect(badgeText()).toBe('2');

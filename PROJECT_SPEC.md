@@ -10,7 +10,7 @@ Keywords: **MUST** = mandatory behaviour, verified by an acceptance criterion. *
 
 ## 1. Product vision
 
-BlockBuster is a learning project (ITS Cloud Developer, frontend course) that simulates a small online shop for physical media: **books first, then films and records**.
+BlockBuster is a learning project (ITS Cloud Developer, frontend course) that simulates a small online shop. It sells the catalogue's real product categories (laptops, smartphones, furniture, clothing, …); the original media-only idea was dropped after client feedback on 2026-10-16.
 
 It is a frontend demonstration. It does **not** take real payments, create real orders, authenticate users or use a custom backend. Purchases are simulated in the browser.
 
@@ -30,8 +30,8 @@ Every step MUST work end to end.
 ### 3.1 In scope
 
 - Storefront page with a product catalogue loaded from DummyJSON.
-- Name search, shelf (category) filter and price-range filter, all combinable.
-- Shared shopping cart: add, +1, remove, subtotals, total.
+- Name search, category filter and a price dropdown (sort or preset range), all combinable.
+- Shared shopping cart: add, +1, −1, remove, subtotals, total.
 - Simulated purchase of one cart line (**Buy**) and of the whole cart (**Buy All**).
 - Purchase-confirmation page.
 - Loading, error, empty and success feedback.
@@ -46,34 +46,26 @@ Every step MUST work end to end.
 - Decreasing quantity by one (only +1 and Remove are required).
 - Writing anything back to DummyJSON.
 
-## 4. Data source: DummyJSON and the shelf mapping
+## 4. Data source: DummyJSON and the categories
 
 ### 4.1 Source
 
 Products come from `GET https://dummyjson.com/products?limit=0&select=id,title,price,category,thumbnail`.
 DummyJSON is the course's data source (audit §5, decision 12).
 
-### 4.2 Limitation
+### 4.2 Categories
 
-DummyJSON has **no books, films or records**. On 2026-10-14 it returned 194 products in 24 general retail categories (`beauty`, `furniture`, `smartphones`, …).
+On 2026-10-16 DummyJSON returned 194 products in 24 categories (`/products/category-list`). Every product is sold, under its real category. The slug is turned into a readable name in `category-mapping.ts`:
 
-### 4.3 Mapping strategy (transparent stand-in)
+`beauty`, `fragrances`, `furniture`, `groceries`, `home-decoration`, `kitchen-accessories`, `laptops`, `mens-shirts`, `mens-shoes`, `mens-watches`, `mobile-accessories`, `motorcycle`, `skin-care`, `smartphones`, `sports-accessories`, `sunglasses`, `tablets`, `tops`, `vehicle`, `womens-bags`, `womens-dresses`, `womens-jewellery`, `womens-shoes`, `womens-watches`.
 
-A fixed, documented table assigns some DummyJSON categories to the three BlockBuster **shelves**. Products in unmapped categories are not shown.
+Examples: `mens-shirts` → "Men's Shirts", `vehicle` → "Vehicles". A category the table does not know yet is still shown, with a name built from its slug (`pet-supplies` → "Pet Supplies").
 
-| BlockBuster shelf | Display order | DummyJSON source categories | Rationale | Products (2026-10-14) |
-|---|---|---|---|---|
-| Books | 1 | `home-decoration`, `furniture`, `kitchen-accessories` | Books are the priority, so they get the largest group ("home & living") | 40 |
-| Films | 2 | `smartphones`, `tablets`, `laptops` | Screen devices, the things films are watched on | 24 |
-| Records | 3 | `mobile-accessories` | Mostly audio products (AirPods, HomePod, Echo, Beats) | 14 |
+### 4.3 Presentation rules (client feedback, 2026-10-16)
 
-Transparency rules (MUST):
-
-- The storefront shows a visible notice explaining that the products are DummyJSON demo items placed on media shelves.
-- Every product card shows its **original DummyJSON category** next to the shelf.
-- Product names, prices and images are shown exactly as DummyJSON returns them. No titles, authors or media data are invented.
-
-The catalogue is ordered by shelf (Books, Films, Records) and then in the API's own order.
+- The page never names the data provider: no "DummyJSON" text in the cards, notices, footer or any other visible text. The name appears only in the source code (the API URL and type names).
+- Product names, prices and images are shown exactly as the API returns them.
+- The catalogue is shown in the API's own order (grouped by category) unless the user picks a price sort.
 
 ### 4.4 Prices
 
@@ -90,12 +82,12 @@ DummyJSON prices have no currency. BlockBuster shows them in US dollars (`$`), t
 
 ### 5.2 Storefront and catalogue
 
-- FR-CAT-1 MUST: The storefront has a page heading and the shelf-mapping notice (§4.3).
+- FR-CAT-1 MUST: The storefront has a page heading. There is no demo or data-source notice (§4.3).
 - FR-CAT-2 MUST: Products load from DummyJSON when the page opens.
 - FR-CAT-3 MUST: While loading, a loading message is shown.
 - FR-CAT-4 MUST: If the request fails, an error message and a **Try again** button are shown. Try again repeats the request.
-- FR-CAT-5 MUST: If the API returns no products on the mapped shelves, a "catalogue is empty" message is shown.
-- FR-CAT-6 MUST: Each product card shows the image (with alt text), name, price, shelf and original category, plus an **Add to cart** button.
+- FR-CAT-5 MUST: If the API returns no products, a "catalogue is empty" message is shown.
+- FR-CAT-6 MUST: Each product card shows the image (with alt text), name, price and category, plus an **Add to cart** button.
 - FR-CAT-7 MUST: Cards have a consistent size and layout regardless of image proportions or title length.
 
 ### 5.3 Search
@@ -104,23 +96,22 @@ DummyJSON prices have no currency. BlockBuster shows them in US dollars (`$`), t
 - FR-SRCH-2 MUST: Matching is case-insensitive and matches full or partial names ("POD" matches "Monopod" and "Apple HomePod Mini Cosmic Grey").
 - FR-SRCH-3 MUST: Leading and trailing spaces are ignored. An empty or whitespace-only field means "no name filter".
 
-### 5.4 Shelf (category) filter
+### 5.4 Category filter
 
-- FR-SHELF-1 MUST: A dropdown lists the shelves actually used: Books, Films, Records.
-- FR-SHELF-2 MUST: It has a label that invites the user to choose a shelf. The default option, **All shelves**, shows every product.
-- FR-SHELF-3 MUST: Choosing a shelf immediately shows only that shelf's products.
+- FR-CAT-F-1 MUST: A dropdown lists the categories present in the catalogue, A → Z.
+- FR-CAT-F-2 MUST: It has a placeholder that invites the user to choose a category, and an **All categories** option. Both show every product.
+- FR-CAT-F-3 MUST: Choosing a category immediately shows only that category's products.
 
-### 5.5 Price filter
+### 5.5 Price dropdown
 
-- FR-PRICE-1 MUST: Two number fields, **Min price** and **Max price**, restrict the catalogue. Either can be left empty (no bound).
-- FR-PRICE-2 MUST: Bounds are inclusive: a $9.99 product matches min = 9.99.
-- FR-PRICE-3 MUST: Negative values are invalid.
-- FR-PRICE-4 MUST: If min is greater than max, the range is invalid.
-- FR-PRICE-5 MUST: When the range is invalid, a clear inline message explains the problem and the price filter is **not applied** until it is corrected. The other filters keep working.
+- FR-PRICE-1 MUST: One **Price** dropdown replaces the min/max fields. Its default, **Any price**, applies no price option.
+- FR-PRICE-2 MUST: Under **Sort** it offers **Lowest price first** and **Highest price first**, which reorder the visible products.
+- FR-PRICE-3 MUST: Under **Price range** it offers preset ranges: Under $10, $10 – $25, $25 – $50, $50 – $100, $100 – $500, $500 – $1,000, $1,000 and over. The lower bound is inclusive and the upper bound exclusive, so every price falls in exactly one range.
+- FR-PRICE-4 MUST: Only one price option is active at a time, because they share one dropdown.
 
 ### 5.6 Combined filtering
 
-- FR-FILT-1 MUST: Search, shelf and price filters apply together (logical AND).
+- FR-FILT-1 MUST: Search, category and price options apply together (logical AND, then the sort order).
 - FR-FILT-2 MUST: Changing one filter never clears another.
 - FR-FILT-3 MUST: A **Reset filters** button clears all filters and restores the full catalogue.
 - FR-FILT-4 MUST: A result count is shown ("Showing X of Y products").
@@ -170,9 +161,8 @@ Each route sets a meaningful browser tab title.
 |---|---|
 | Catalogue loading | "Loading products…" |
 | API failure | Error message + Try again |
-| API returned no shelf products | "The catalogue is empty" |
+| API returned no products | "The catalogue is empty" |
 | Filters match nothing | "No products match your filters" + Reset filters |
-| Invalid price range | Inline message under the price fields |
 | Product added | "<name> added to cart" message |
 | Cart empty | "Your cart is empty" + link to the shop |
 | Single Buy succeeded | "Simulated purchase complete: <qty> × <name> ($<amount>)" |
@@ -197,20 +187,20 @@ Each criterion is testable by hand in the browser. Many are also covered by unit
 
 | ID | Given / When | Then |
 |---|---|---|
-| AC-1 | The storefront opens | "Loading products…" appears, then product cards from DummyJSON, Books first |
+| AC-1 | The storefront opens | "Loading products…" appears, then the product cards |
 | AC-2 | The API is unreachable (e.g. offline) | An error message and a Try again button appear |
-| AC-3 | Products are shown | Each card shows image, name, price, shelf and original category |
+| AC-3 | Products are shown | Each card shows image, name, price and a readable category; no page text mentions DummyJSON |
 | AC-4 | Search = "iphone" | Only products with "iphone" in their name (any case) remain |
 | AC-5 | Search = "Apple Airpods" (full name) | That product is shown |
-| AC-6 | Shelf = Films | Only Films products are shown |
-| AC-7 | Min = 10, Max = 50 | Only products priced 10–50 inclusive are shown |
-| AC-8 | Min = 100, Max = 10 | An inline range error appears; the price filter is ignored |
-| AC-9 | Search "a" + Shelf Books + Max 20 | Results satisfy all three conditions |
+| AC-6 | Category = Laptops | Only Laptops products are shown |
+| AC-7 | Price = $10 – $25 | Only products priced from $10 up to, but not including, $25 are shown |
+| AC-8 | Price = Lowest price first, then Highest price first | The visible products are ordered by price, ascending then descending |
+| AC-9 | Search "a" + Category Furniture + Price $100 – $500 | Results satisfy all three conditions |
 | AC-10 | Filters set, then Reset filters | All fields are cleared and the full catalogue returns |
 | AC-11 | Search "zzzz" | "No products match your filters" appears |
 | AC-12 | Add product P | Cart badge shows 1; P appears in the cart with quantity 1 |
 | AC-13 | Add P again | P is one line with quantity 2; badge shows 2 |
-| AC-14 | Click +1 on P | Quantity and subtotal increase; the total updates |
+| AC-14 | Click +1 on P, then −1 | Quantity and subtotal go up, then down; the total updates. −1 is disabled at quantity 1, so repeated clicks never remove P |
 | AC-15 | Click Remove on P | The line disappears; the total updates |
 | AC-16 | Cart with lines A ($10 × 2) and B ($5 × 1) | Subtotals are $20.00 and $5.00; total is $25.00 |
 | AC-17 | Remove every line | "Your cart is empty" appears; Buy All is not available |
@@ -224,9 +214,9 @@ Each criterion is testable by hand in the browser. Many are also covered by unit
 
 ## 9. Assumptions and known limitations
 
-- The media shelves are a **stand-in mapping**, not real media data (§4.3). The products are kitchenware, phones, headphones, etc.
-- The mapping depends on DummyJSON's category names. If DummyJSON renames a category, its products disappear from the shop until the mapping table is updated.
-- All products are loaded once (78 mapped products); filtering happens in the browser. This would not scale to thousands of products. Server-side search would then be needed.
+- Category names come from a fixed table. If DummyJSON adds or renames a category, its products still appear, with a name built from the slug, until the table is updated.
+- Product images are loaded from DummyJSON's image CDN, so the image URLs (not the visible text) contain its domain. Hiding that would need a proxy or self-hosted images.
+- All products are loaded once (194 products); filtering happens in the browser. This would not scale to thousands of products. Server-side search would then be needed.
 - The cart is held in memory: it survives navigation but not a full reload.
 - Purchases are simulated and immediate: there is no network request and no failure path.
 - DummyJSON stock levels are ignored; there is no maximum quantity.

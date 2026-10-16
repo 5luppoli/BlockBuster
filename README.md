@@ -1,7 +1,7 @@
 # BlockBuster
 
-A small Angular 21 storefront for books, films and records, built as an ITS Cloud Developer learning project.
-Products come from [DummyJSON](https://dummyjson.com), placed on media shelves by a documented stand-in mapping. Purchases are simulated: no payment is taken.
+A small Angular 21 storefront, built as an ITS Cloud Developer learning project.
+Products come from [DummyJSON](https://dummyjson.com) and are shown in their real categories (laptops, smartphones, furniture, …). The provider is never named on the page. Purchases are simulated: no payment is taken.
 
 ```bash
 npm install

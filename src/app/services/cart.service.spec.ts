@@ -9,8 +9,7 @@ function makeProduct(id: number, price: number): Product {
     title: `Product ${id}`,
     price,
     thumbnail: `p${id}.webp`,
-    shelf: 'Books',
-    sourceCategory: 'furniture',
+    category: 'Furniture',
   };
 }
 
@@ -58,6 +57,29 @@ describe('CartService', () => {
     cart.increaseQuantity(99);
 
     expect(cart.isEmpty()).toBe(true);
+  });
+
+  it('decreases the quantity by one with decreaseQuantity, but never below 1', () => {
+    cart.addProduct(productA);
+    cart.addProduct(productA);
+    cart.addProduct(productA);
+
+    cart.decreaseQuantity(productA.id);
+    expect(cart.lines()[0].quantity).toBe(2);
+
+    // Repeated clicks stop at 1 instead of removing the line.
+    cart.decreaseQuantity(productA.id);
+    cart.decreaseQuantity(productA.id);
+    cart.decreaseQuantity(productA.id);
+    expect(cart.lines()[0].quantity).toBe(1);
+    expect(cart.itemCount()).toBe(1);
+  });
+
+  it('ignores decreaseQuantity for a product that is not in the cart', () => {
+    cart.addProduct(productA);
+    cart.decreaseQuantity(99);
+
+    expect(cart.lines()[0].quantity).toBe(1);
   });
 
   it('removes a line completely', () => {

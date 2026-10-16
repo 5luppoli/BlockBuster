@@ -13,8 +13,8 @@ import { ProductService } from './services/product.service';
 import { StorefrontComponent } from './storefront/storefront.component';
 
 const catalogue: Product[] = [
-  { id: 1, title: 'Plant Pot', price: 14.99, thumbnail: 'a.webp', shelf: 'Books', sourceCategory: 'home-decoration' },
-  { id: 3, title: 'iPhone X', price: 899.99, thumbnail: 'c.webp', shelf: 'Films', sourceCategory: 'smartphones' },
+  { id: 1, title: 'Plant Pot', price: 14.99, thumbnail: 'a.webp', category: 'Home Decoration' },
+  { id: 3, title: 'iPhone X', price: 899.99, thumbnail: 'c.webp', category: 'Smartphones' },
 ];
 
 /**
@@ -74,6 +74,6 @@ describe('Shopping journey (routing + shared cart)', () => {
     await harness.navigateByUrl('/does-not-exist');
 
     expect(TestBed.inject(Router).url).toBe('/');
-    expect(page().textContent).toContain('Books, films and records');
+    expect(page().querySelector('h1')?.textContent).toContain('Shop');
   });
 });

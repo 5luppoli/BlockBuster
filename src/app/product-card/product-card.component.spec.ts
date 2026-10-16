@@ -7,9 +7,8 @@ const product: Product = {
   id: 7,
   title: 'Apple Airpods',
   price: 129.99,
-  thumbnail: 'https://cdn.dummyjson.com/airpods.webp',
-  shelf: 'Records',
-  sourceCategory: 'mobile-accessories',
+  thumbnail: 'https://example.com/airpods.webp',
+  category: 'Mobile Accessories',
 };
 
 describe('ProductCardComponent', () => {
@@ -27,15 +26,15 @@ describe('ProductCardComponent', () => {
     card = fixture.nativeElement as HTMLElement;
   });
 
-  it('shows the image, name, price, shelf and original category', () => {
+  it('shows the image, name, price and category', () => {
     const image = card.querySelector('img');
 
     expect(image?.getAttribute('src')).toBe(product.thumbnail);
     expect(image?.getAttribute('alt')).toBe('Apple Airpods');
     expect(card.querySelector('h3')?.textContent).toContain('Apple Airpods');
     expect(card.textContent).toContain('$129.99');
-    expect(card.textContent).toContain('Records');
-    expect(card.textContent).toContain('DummyJSON: mobile-accessories');
+    expect(card.textContent).toContain('Mobile Accessories');
+    expect(card.textContent?.toLowerCase()).not.toContain('dummyjson');
   });
 
   it('emits the product when "Add to cart" is clicked', () => {

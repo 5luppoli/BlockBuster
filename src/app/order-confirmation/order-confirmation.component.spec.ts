@@ -5,7 +5,7 @@ import { Product } from '../models/product.model';
 import { CartService } from '../services/cart.service';
 import { OrderConfirmationComponent } from './order-confirmation.component';
 
-const lamp: Product = { id: 1, title: 'Lamp', price: 10, thumbnail: 'a.webp', shelf: 'Books', sourceCategory: 'home-decoration' };
+const lamp: Product = { id: 1, title: 'Lamp', price: 10, thumbnail: 'a.webp', category: 'Home Decoration' };
 
 describe('OrderConfirmationComponent', () => {
   let fixture: ComponentFixture<OrderConfirmationComponent>;

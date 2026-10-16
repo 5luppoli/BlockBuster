@@ -5,8 +5,8 @@ import { Product } from '../models/product.model';
 import { CartService } from '../services/cart.service';
 import { CartComponent } from './cart.component';
 
-const productA: Product = { id: 1, title: 'Lamp', price: 10, thumbnail: 'a.webp', shelf: 'Books', sourceCategory: 'home-decoration' };
-const productB: Product = { id: 2, title: 'Spoon', price: 5, thumbnail: 'b.webp', shelf: 'Books', sourceCategory: 'kitchen-accessories' };
+const productA: Product = { id: 1, title: 'Lamp', price: 10, thumbnail: 'a.webp', category: 'Home Decoration' };
+const productB: Product = { id: 2, title: 'Spoon', price: 5, thumbnail: 'b.webp', category: 'Kitchen Accessories' };
 
 describe('CartComponent', () => {
   let fixture: ComponentFixture<CartComponent>;
@@ -61,6 +61,19 @@ describe('CartComponent', () => {
     expect(text('quantity')).toEqual(['2']);
     expect(text('subtotal')).toEqual(['$20.00']);
     expect(text('total')).toEqual(['$20.00']);
+  });
+
+  it('−1 decreases the quantity, subtotal and total, and is disabled at 1', () => {
+    cart.addProduct(productA);
+    cart.addProduct(productA);
+    fixture.detectChanges();
+
+    clickButton('Remove one Lamp');
+
+    expect(text('quantity')).toEqual(['1']);
+    expect(text('subtotal')).toEqual(['$10.00']);
+    expect(text('total')).toEqual(['$10.00']);
+    expect((page.querySelector('button[aria-label="Remove one Lamp"]') as HTMLButtonElement).disabled).toBe(true);
   });
 
   it('Remove deletes the line, and removing the last line shows the empty state', () => {

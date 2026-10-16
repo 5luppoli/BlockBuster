@@ -1,19 +1,7 @@
 <section aria-labelledby="shop-heading">
   <div class="mb-4">
-    <h1 id="shop-heading" class="display-6 fw-bold">Books, films and records</h1>
-    <p class="lead mb-3">Browse the BlockBuster shelves, starting with books.</p>
-
-    <div class="alert alert-info small mb-0" role="note">
-      <strong>Demo catalogue.</strong> DummyJSON sells no media, so BlockBuster places some of its
-      general products on media shelves. Each card shows its original DummyJSON category.
-      <ul class="mb-0 mt-1">
-        @for (shelf of shelves; track shelf) {
-          <li>
-            <strong>{{ shelf }}</strong>: {{ shelfSources[shelf].join(', ') }}
-          </li>
-        }
-      </ul>
-    </div>
+    <h1 id="shop-heading" class="display-6 fw-bold">Shop</h1>
+    <p class="lead mb-0">Find something you like and add it to your cart.</p>
   </div>
 
   @switch (loadState()) {
@@ -56,56 +44,32 @@
             </div>
 
             <div class="col-12 col-sm-6 col-lg-4">
-              <label for="shelf" class="form-label fw-semibold">Shelf</label>
-              <select id="shelf" name="shelf" class="form-select" [(ngModel)]="selectedShelf">
-                <option [ngValue]="null" disabled>Select a shelf…</option>
-                <option ngValue="all">All shelves</option>
-                @for (shelf of shelves; track shelf) {
-                  <option [ngValue]="shelf">{{ shelf }}</option>
+              <label for="category" class="form-label fw-semibold">Category</label>
+              <select id="category" name="category" class="form-select" [(ngModel)]="selectedCategory">
+                <option [ngValue]="null" disabled>Select a category…</option>
+                <option ngValue="all">All categories</option>
+                @for (category of categories(); track category) {
+                  <option [ngValue]="category">{{ category }}</option>
                 }
               </select>
             </div>
 
-            <div class="col-6 col-sm-3 col-lg-2">
-              <label for="min-price" class="form-label fw-semibold">Min price ($)</label>
-              <input
-                id="min-price"
-                name="minPrice"
-                type="number"
-                min="0"
-                step="any"
-                inputmode="decimal"
-                class="form-control"
-                placeholder="Any"
-                [class.is-invalid]="priceRangeError()"
-                [attr.aria-describedby]="priceRangeError() ? 'price-error' : null"
-                [(ngModel)]="minPrice"
-              />
-            </div>
-
-            <div class="col-6 col-sm-3 col-lg-2">
-              <label for="max-price" class="form-label fw-semibold">Max price ($)</label>
-              <input
-                id="max-price"
-                name="maxPrice"
-                type="number"
-                min="0"
-                step="any"
-                inputmode="decimal"
-                class="form-control"
-                placeholder="Any"
-                [class.is-invalid]="priceRangeError()"
-                [attr.aria-describedby]="priceRangeError() ? 'price-error' : null"
-                [(ngModel)]="maxPrice"
-              />
+            <div class="col-12 col-sm-6 col-lg-4">
+              <label for="price" class="form-label fw-semibold">Price</label>
+              <select id="price" name="price" class="form-select" [(ngModel)]="priceOption">
+                <option ngValue="none">Any price</option>
+                <optgroup label="Sort">
+                  <option ngValue="price-asc">Lowest price first</option>
+                  <option ngValue="price-desc">Highest price first</option>
+                </optgroup>
+                <optgroup label="Price range">
+                  @for (band of priceBands; track band.id) {
+                    <option [ngValue]="band.id">{{ band.label }}</option>
+                  }
+                </optgroup>
+              </select>
             </div>
           </div>
-
-          @if (priceRangeError(); as error) {
-            <p id="price-error" class="text-danger small mt-2 mb-0" role="alert">
-              {{ error }} The price filter is ignored until you fix it.
-            </p>
-          }
         </form>
 
         <div class="d-flex flex-wrap align-items-center gap-2 mb-3">

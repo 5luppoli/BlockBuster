@@ -67,6 +67,20 @@ export class CartService {
     );
   }
 
+  /**
+   * Removes one unit, but never goes below 1: a line is only deleted by removeItem,
+   * so repeated clicks on "−1" cannot empty the cart by accident.
+   */
+  decreaseQuantity(productId: number): void {
+    this.itemsState.update((items) =>
+      items.map((item) =>
+        item.product.id === productId && item.quantity > 1
+          ? { ...item, quantity: item.quantity - 1 }
+          : item,
+      ),
+    );
+  }
+
   removeItem(productId: number): void {
     this.itemsState.update((items) => items.filter((item) => item.product.id !== productId));
   }

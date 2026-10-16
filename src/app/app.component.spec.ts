@@ -12,7 +12,7 @@ describe('AppComponent', () => {
     }).compileComponents();
   });
 
-  it('renders the brand, navigation and the simulated-purchase disclaimer', () => {
+  it('renders the brand and navigation, with no footer disclaimer', () => {
     const fixture = TestBed.createComponent(AppComponent);
     fixture.detectChanges();
     const page = fixture.nativeElement as HTMLElement;
@@ -20,6 +20,7 @@ describe('AppComponent', () => {
     expect(page.querySelector('.navbar-brand')?.textContent).toContain('BlockBuster');
     expect(page.querySelector('nav')?.textContent).toContain('Shop');
     expect(page.querySelector('nav')?.textContent).toContain('Cart');
-    expect(page.querySelector('footer')?.textContent).toContain('no payment is taken');
+    expect(page.querySelector('footer')).toBeNull();
+    expect(page.textContent?.toLowerCase()).not.toContain('dummyjson');
   });
 });

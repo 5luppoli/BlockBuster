@@ -10,10 +10,10 @@ import { ProductService } from '../services/product.service';
 import { StorefrontComponent } from './storefront.component';
 
 const catalogue: Product[] = [
-  { id: 1, title: 'Plant Pot', price: 14.99, thumbnail: 'a.webp', shelf: 'Books', sourceCategory: 'home-decoration' },
-  { id: 2, title: 'Table Lamp', price: 49.99, thumbnail: 'b.webp', shelf: 'Books', sourceCategory: 'home-decoration' },
-  { id: 3, title: 'iPhone X', price: 899.99, thumbnail: 'c.webp', shelf: 'Films', sourceCategory: 'smartphones' },
-  { id: 4, title: 'Apple Airpods', price: 129.99, thumbnail: 'd.webp', shelf: 'Records', sourceCategory: 'mobile-accessories' },
+  { id: 1, title: 'Plant Pot', price: 14.99, thumbnail: 'a.webp', category: 'Home Decoration' },
+  { id: 2, title: 'Table Lamp', price: 49.99, thumbnail: 'b.webp', category: 'Home Decoration' },
+  { id: 3, title: 'iPhone X', price: 899.99, thumbnail: 'c.webp', category: 'Smartphones' },
+  { id: 4, title: 'Apple Airpods', price: 129.99, thumbnail: 'd.webp', category: 'Mobile Accessories' },
 ];
 
 describe('StorefrontComponent', () => {
@@ -64,12 +64,11 @@ describe('StorefrontComponent', () => {
     expect(cardTitles()).toEqual(['Plant Pot', 'Table Lamp', 'iPhone X', 'Apple Airpods']);
   });
 
-  it('explains the demo shelf mapping', async () => {
+  it('never mentions the data provider on the page', async () => {
     await render();
 
-    const note = (page.querySelector('[role="note"]')?.textContent ?? '').replace(/\s+/g, ' ');
-    expect(note).toContain('Demo catalogue');
-    expect(note).toContain('Films: smartphones, tablets, laptops');
+    expect(page.textContent?.toLowerCase()).not.toContain('dummyjson');
+    expect(page.querySelector('[role="note"]')).toBeNull();
   });
 
   it('shows an error with a working "Try again" button when loading fails', async () => {
@@ -103,8 +102,8 @@ describe('StorefrontComponent', () => {
       fixture.detectChanges();
     }
 
-    async function chooseShelf(label: string): Promise<void> {
-      const select = page.querySelector('#shelf') as HTMLSelectElement;
+    async function choose(selector: string, label: string): Promise<void> {
+      const select = page.querySelector(selector) as HTMLSelectElement;
       const option = Array.from(select.options).find((o) => o.textContent?.trim() === label);
       select.value = option?.value ?? '';
       select.dispatchEvent(new Event('change'));
@@ -119,11 +118,21 @@ describe('StorefrontComponent', () => {
 
     beforeEach(render);
 
-    it('starts with the shelf placeholder selected and every product visible', () => {
-      const select = page.querySelector('#shelf') as HTMLSelectElement;
+    it('starts with the category placeholder and "Any price" selected, and every product visible', () => {
+      const category = page.querySelector('#category') as HTMLSelectElement;
+      const price = page.querySelector('#price') as HTMLSelectElement;
 
-      expect(select.options[select.selectedIndex].textContent?.trim()).toBe('Select a shelf…');
+      expect(category.options[category.selectedIndex].textContent?.trim()).toBe('Select a category…');
+      expect(price.options[price.selectedIndex].textContent?.trim()).toBe('Any price');
       expect(resultCount()).toBe('Showing 4 of 4 products');
+    });
+
+    it('lists only the categories in the catalogue, A → Z', () => {
+      const options = Array.from((page.querySelector('#category') as HTMLSelectElement).options).map((o) =>
+        o.textContent?.trim(),
+      );
+
+      expect(options).toEqual(['Select a category…', 'All categories', 'Home Decoration', 'Mobile Accessories', 'Smartphones']);
     });
 
     it('filters by partial name as the user types', async () => {
@@ -132,31 +141,37 @@ describe('StorefrontComponent', () => {
       expect(cardTitles()).toEqual(['Table Lamp']);
     });
 
-    it('filters by shelf, and "All shelves" shows everything again', async () => {
-      await chooseShelf('Films');
+    it('filters by category, and "All categories" shows everything again', async () => {
+      await choose('#category', 'Smartphones');
       expect(cardTitles()).toEqual(['iPhone X']);
 
-      await chooseShelf('All shelves');
+      await choose('#category', 'All categories');
       expect(cardTitles().length).toBe(4);
     });
 
-    it('combines search, shelf and price without clearing each other', async () => {
-      await chooseShelf('Books');
-      await type('#max-price', '20');
+    it('sorts by lowest or highest price first', async () => {
+      await choose('#price', 'Lowest price first');
+      expect(cardTitles()).toEqual(['Plant Pot', 'Table Lamp', 'Apple Airpods', 'iPhone X']);
+
+      await choose('#price', 'Highest price first');
+      expect(cardTitles()).toEqual(['iPhone X', 'Apple Airpods', 'Table Lamp', 'Plant Pot']);
+    });
+
+    it('filters by a preset price range', async () => {
+      await choose('#price', '$25 – $50');
+
+      expect(cardTitles()).toEqual(['Table Lamp']);
+    });
+
+    it('combines search, category and price without clearing each other', async () => {
+      await choose('#category', 'Home Decoration');
+      await choose('#price', '$10 – $25');
       expect(cardTitles()).toEqual(['Plant Pot']);
 
       await type('#search', 'lamp');
       expect(cardTitles()).toEqual([]);
-      expect((page.querySelector('#max-price') as HTMLInputElement).value).toBe('20');
-      expect(fixture.componentInstance.selectedShelf()).toBe('Books');
-    });
-
-    it('explains an invalid price range and ignores it', async () => {
-      await type('#min-price', '100');
-      await type('#max-price', '10');
-
-      expect(page.querySelector('#price-error')?.textContent).toContain('cannot be higher');
-      expect(cardTitles().length).toBe(4);
+      expect(fixture.componentInstance.priceOption()).toBe('10-25');
+      expect(fixture.componentInstance.selectedCategory()).toBe('Home Decoration');
     });
 
     it('shows a no-match message, and Reset filters restores the full catalogue', async () => {
@@ -173,7 +188,8 @@ describe('StorefrontComponent', () => {
 
       expect(cardTitles().length).toBe(4);
       expect((page.querySelector('#search') as HTMLInputElement).value).toBe('');
-      expect(fixture.componentInstance.selectedShelf()).toBeNull();
+      expect(fixture.componentInstance.selectedCategory()).toBeNull();
+      expect(fixture.componentInstance.priceOption()).toBe('none');
     });
   });
 

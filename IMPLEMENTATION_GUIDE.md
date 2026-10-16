@@ -120,11 +120,11 @@ src/
 └── app/
     ├── app.module.ts                 declarations, FormsModule, providers
     ├── app-routing.module.ts         the four routes
-    ├── app.component.*               page frame: header, <router-outlet>, footer
+    ├── app.component.*               page frame: header, <router-outlet>
     ├── shopping-journey.spec.ts      routing + shared-cart journey test
     ├── models/
-    │   ├── product.model.ts          MediaShelf, Product, DummyJSON response types
-    │   ├── shelf-mapping.ts          DummyJSON category → shelf table + toShelfProducts()
+    │   ├── product.model.ts          Product, DummyJSON response types
+    │   ├── category-mapping.ts       category slug → display name + toProducts(), categoriesOf()
     │   └── cart.model.ts             CartItem, CartLine, PurchaseSummary
     ├── services/
     │   ├── product.service.ts        GET from DummyJSON → Product[]
@@ -140,16 +140,16 @@ src/
 
 | Part | Type | Responsibility |
 |---|---|---|
-| `AppComponent` | Component | Layout only: `<app-header>`, `<router-outlet>`, footer disclaimer |
+| `AppComponent` | Component | Layout only: `<app-header>`, `<router-outlet>` |
 | `HeaderComponent` | Component | Brand, Shop/Cart links with `routerLinkActive`, live `cart.itemCount()` badge |
 | `StorefrontComponent` | Component (route `/`) | Loads products, holds the filter state, shows loading/error/empty/no-match states, adds to the cart |
 | `ProductCardComponent` | Component | Displays one `Product` (`@Input`), emits `addToCart` (`@Output`). No service access |
-| `CartComponent` | Component (route `/cart`) | Shows `cart.lines()`, +1, Remove, Buy, Buy All; navigates to the confirmation |
+| `CartComponent` | Component (route `/cart`) | Shows `cart.lines()`, +1, −1, Remove, Buy, Buy All; navigates to the confirmation |
 | `OrderConfirmationComponent` | Component (route `/order-confirmation`) | Shows `cart.lastOrder()`, or "No recent purchase" |
 | `ProductService` | Service (`providedIn: 'root'`) | The only place that knows the DummyJSON URL and response shape |
-| `CartService` | Service (`providedIn: 'root'`) | The only place that changes the cart: add, +1, remove, buy, buy all |
-| `product-filter.ts` | Plain TypeScript functions | `filterProducts()` and `getPriceRangeError()`: pure, unit-tested logic |
-| `shelf-mapping.ts` | Plain TypeScript | The documented mapping table and `toShelfProducts()` |
+| `CartService` | Service (`providedIn: 'root'`) | The only place that changes the cart: add, +1, −1, remove, buy, buy all |
+| `product-filter.ts` | Plain TypeScript | `PRICE_BANDS` and `filterProducts()`: pure, unit-tested logic |
+| `category-mapping.ts` | Plain TypeScript | `CATEGORY_LABELS`, `categoryLabel()`, `toProducts()`, `categoriesOf()` |
 
 Routes (`app-routing.module.ts`, same pattern as L4 s.5–7):
 
@@ -169,14 +169,14 @@ StorefrontComponent.ngOnInit()
   → loadProducts(): loadState = 'loading'
     → ProductService.getProducts()
       → HttpClient.get<DummyJsonProductsResponse>(PRODUCTS_URL)          one GET, ~200 products
-      → pipe(map(r => toShelfProducts(r.products ?? [])))                keep mapped categories, sort Books→Films→Records
+      → pipe(map(r => toProducts(r.products ?? [])))                     every product, slug → readable category, API order
     → subscribe({ next: products.set(...), loadState = 'loaded'; error: loadState = 'error' })
   → template: @switch (loadState()) → @for (product of visibleProducts()) → <app-product-card [product]="product">
 ```
 
 - **URL:** `https://dummyjson.com/products?limit=0&select=id,title,price,category,thumbnail`. `limit=0` returns every product; `select` returns only the fields the shop uses.
-- **Typing:** `DummyJsonProductsResponse` describes the raw API JSON; `Product` is the app's own shape. `toShelfProducts()` is the one place where one becomes the other, so the rest of the app never touches API field names.
-- **Mapping:** `SHELF_SOURCE_CATEGORIES` (a `Record<MediaShelf, string[]>`) is the single source of truth. A reverse `Map` is built from it for lookup. The storefront notice is generated from the same table, so the documentation shown to users cannot drift from the code.
+- **Typing:** `DummyJsonProductsResponse` describes the raw API JSON; `Product` is the app's own shape. `toProducts()` is the one place where one becomes the other, so the rest of the app never touches API field names.
+- **Categories:** `CATEGORY_LABELS` (a `Record<string, string>`) turns each of the 24 slugs into a display name ("Men's Shirts"). An unknown slug falls back to a title-cased version, so a new API category is never hidden. The slug never reaches the template, and no page text names the provider (client request, 2026-10-16).
 - **No unsubscribe needed:** HTTP Observables complete after one response (L5 s.4, audit decision 8).
 
 ## 7. Search and filters
@@ -186,26 +186,28 @@ State in `StorefrontComponent`, each a writable signal bound to a form field wit
 | Signal | Field | Empty value |
 |---|---|---|
 | `searchTerm` | `<input type="search">` | `''` |
-| `selectedShelf` | `<select>` | `null` (placeholder "Select a shelf…") or `'all'` ("All shelves") |
-| `minPrice`, `maxPrice` | `<input type="number">` | `null` (Angular gives `null` for an empty number input) |
+| `selectedCategory` | `<select id="category">` | `null` (placeholder "Select a category…") or `'all'` ("All categories") |
+| `priceOption` | `<select id="price">` | `'none'` ("Any price") |
+
+The category options come from `categories = computed(() => categoriesOf(this.products()))`, so the dropdown only lists categories that actually have products. The price dropdown has two `<optgroup>`s: **Sort** (`price-asc`, `price-desc`) and **Price range** (the `id` of each entry in `PRICE_BANDS`).
 
 Derived state with `computed()`:
 
 ```ts
-readonly priceRangeError = computed(() => getPriceRangeError(this.minPrice(), this.maxPrice()));
-readonly visibleProducts = computed(() => filterProducts(this.products(), { searchTerm: ..., shelf: ..., minPrice: ..., maxPrice: ... }));
+readonly visibleProducts = computed(() => filterProducts(this.products(), { searchTerm: ..., category: ..., price: ... }));
 readonly hasActiveFilters = computed(() => ...);   // enables "Reset filters"
 ```
 
-`filterProducts()` (in `product-filter.ts`) keeps a product only if **all** active conditions pass (logical AND):
+`filterProducts()` (in `product-filter.ts`) keeps a product only if **all** active conditions pass (logical AND), then sorts if asked:
 
 1. **Name:** `title.toLowerCase().includes(term)`, where `term` is the trimmed, lower-cased search text. An empty term means no name condition.
-2. **Shelf:** `product.shelf === shelf` when a shelf is chosen. The placeholder and "All shelves" both mean no shelf condition.
-3. **Price:** `price >= min` and `price <= max` (both inclusive), each only if set.
+2. **Category:** `product.category === category` when one is chosen. The placeholder and "All categories" both mean no category condition.
+3. **Price range:** `price >= band.min` and `price < band.max`, each only if set. Exclusive upper bounds mean $25.00 belongs to "$25 – $50" only.
+4. **Sort:** `price-asc` / `price-desc` sort the filtered copy with `Array.sort`; the input array is never changed.
 
-Validation (`getPriceRangeError`): a negative bound, or min > max, returns a message. The page shows it under the fields (`role="alert"`, `is-invalid` styling), and `filterProducts()` **ignores the price range** until it is fixed. The other filters keep working, so the user never sees an unexplained empty page.
+The bands were chosen from the live price spread (2026-10-16: 46 products under $10, 38 at $10–25, 33 at $25–50, 16 at $50–100, 28 at $100–500, 7 at $500–1,000, 26 at $1,000+).
 
-Because every input is a signal and the result is a `computed()`, changing one filter recalculates the list from **all** current values. No filter can overwrite another, and the list can never be out of date. **Reset filters** sets the four signals back to their empty values.
+Because every input is a signal and the result is a `computed()`, changing one filter recalculates the list from **all** current values. No filter can overwrite another, and the list can never be out of date. **Reset filters** sets the three signals back to their empty values.
 
 ## 8. Shared cart state
 
@@ -251,26 +253,26 @@ Purchases are synchronous and in memory: there is no network call and no failure
 
 ### 10.1 Unit and component tests (Vitest, `npm test`)
 
-Angular 21's default test runner is **Vitest** with jsdom (`@angular/build:unit-test`). Last run: **10 files, 57 tests, all passing**.
+Angular 21's default test runner is **Vitest** with jsdom (`@angular/build:unit-test`). Last run (2026-10-16): **10 files, 60 tests, all passing**.
 
 | Spec file | What it proves |
 |---|---|
-| `services/cart.service.spec.ts` | Add, no duplicates, +1, remove, subtotals/total ($10×2 + $5 = $25), rounding, Buy keeps other lines, Buy All clears and records, empty Buy All is refused |
-| `services/product.service.spec.ts` | Correct URL, category → shelf mapping, unmapped categories dropped, Books→Films→Records order, missing `products` array, HTTP errors (uses `HttpTestingController`) |
-| `storefront/product-filter.spec.ts` | Full/partial/case-insensitive search, trimming, shelf, inclusive min/max, invalid range ignored, `NaN`, combined filters, validation messages |
-| `storefront/storefront.component.spec.ts` | Loading → cards, error + Try again, empty catalogue, demo notice, filters through the real form fields, reset, no-match message, add-to-cart feedback |
-| `product-card/product-card.component.spec.ts` | Image/alt, name, price, shelf, original category; emits on click |
-| `cart/cart.component.spec.ts` | Empty state, quantities/subtotals/total, +1, Remove, Buy message, Buy All navigates, empty Buy All does nothing |
+| `services/cart.service.spec.ts` | Add, no duplicates, +1, −1 (stops at 1), remove, subtotals/total ($10×2 + $5 = $25), rounding, Buy keeps other lines, Buy All clears and records, empty Buy All is refused |
+| `services/product.service.spec.ts` | Correct URL, every product kept in API order, slug → readable category (including the unknown-slug fallback), missing `products` array, HTTP errors (uses `HttpTestingController`) |
+| `storefront/product-filter.spec.ts` | Full/partial/case-insensitive search, trimming, category, ascending/descending sort, every price band (bounds), bands cover each price once, unknown option, combined filters, input not mutated |
+| `storefront/storefront.component.spec.ts` | Loading → cards, error + Try again, empty catalogue, no provider name on the page, category list, sort and price range through the real dropdowns, reset, no-match message, add-to-cart feedback |
+| `product-card/product-card.component.spec.ts` | Image/alt, name, price, category, no provider name; emits on click |
+| `cart/cart.component.spec.ts` | Empty state, quantities/subtotals/total, +1, −1 (disabled at 1), Remove, Buy message, Buy All navigates, empty Buy All does nothing |
 | `order-confirmation/order-confirmation.component.spec.ts` | Success with count and total after Buy All; "No recent purchase" when opened directly |
 | `header/header.component.spec.ts` | Badge shows the total quantity and updates |
 | `shopping-journey.spec.ts` | Real routes with `RouterTestingHarness`: shop → add → cart → shop → cart (cart kept) → Buy All → `/order-confirmation` → cart empty; unknown URL → `/` |
-| `app.component.spec.ts` | Brand, navigation and disclaimer render |
+| `app.component.spec.ts` | Brand and navigation render; no footer and no provider name |
 
 ### 10.2 Real-browser acceptance check
 
 On 2026-10-14 the acceptance criteria in PROJECT_SPEC.md §8 were run in **headless Google Chrome** against `ng serve` and the **live DummyJSON API**. A throwaway `puppeteer-core` script outside the repository drove the browser; it is not a project dependency. Results: **AC-1 to AC-23 passed** (24 checks), with **0 browser-console errors** during the normal flows. For AC-2 the script blocked `dummyjson.com`. The error state and Try again button appeared, and Chrome logged one expected network error.
 
-Observed values: 78 products (40 Books, 24 Films, 14 Records); no horizontal scrolling at 360 px width; one card per row on phones, four on a 1280 px desktop.
+Observed values (before the 2026-10-16 category change): 78 products on three media shelves; no horizontal scrolling at 360 px width; one card per row on phones, four on a 1280 px desktop.
 
 To repeat it by hand, run `npm start` and walk through the table in PROJECT_SPEC.md §8. To test AC-2, use DevTools → Network → Offline, then reload.
 
@@ -283,7 +285,7 @@ To repeat it by hand, run `npm start` and walk through the table in PROJECT_SPEC
 | Feature used | Where | What it does | Course concept it replaces or extends |
 |---|---|---|---|
 | `signal()` | `CartService`, `StorefrontComponent`, `CartComponent` | A value container that tells Angular when it changes. Read it with `count()`, change it with `.set()` / `.update()` | Plain component properties (L3 s.15), plus `BehaviorSubject` shared state (L5 s.13) without manual subscribe/unsubscribe |
-| `computed()` | `lines`, `total`, `itemCount`, `visibleProducts`, `priceRangeError` | A read-only value derived from other signals, recalculated only when they change | Recalculating in methods after every change (the filtering/sorting methods of L3 s.17) |
+| `computed()` | `lines`, `total`, `itemCount`, `visibleProducts`, `categories` | A read-only value derived from other signals, recalculated only when they change | Recalculating in methods after every change (the filtering/sorting methods of L3 s.17) |
 | `.asReadonly()` | `CartService.lastOrder` | Exposes a signal that consumers cannot `.set()` | `private` fields + getters (L2 s.17) |
 | `[(ngModel)]="aSignal"` | Filter fields | Two-way binding works directly with a writable signal (Angular ≥ 17.2) | `[(ngModel)]` with a plain property (L4 s.16) |
 | `@if`, `@for (…; track …)`, `@switch` | All templates | Built-in template control flow. `track` tells Angular which item is which, so it re-renders only what changed | `*ngIf`, `*ngFor`, `ngSwitch` (L3 s.16), which are deprecated in recent Angular |
@@ -292,11 +294,12 @@ To repeat it by hand, run `npm start` and walk through the table in PROJECT_SPEC
 | `subscribe({ next, error })` | `StorefrontComponent` | The observer-object form | The two-callback `subscribe(next, err)` form (NG-B s.53), deprecated in RxJS 7 |
 | `@Input({ required: true })` | `ProductCardComponent` | Compile-time error if the parent forgets the input | `@Input()` (L3 s.18) |
 | Route `title` | Routes | Sets the browser-tab title per route | Not covered |
-| `?.` and `??` | `response.products ?? []` (ProductService), `(this.selectedShelf() ?? 'all')`; `?.` throughout the specs | Safe access to possibly missing data; default for `null`/`undefined` | `?.` was used but not explained in L3 s.19 |
+| `?.` and `??` | `response.products ?? []` (ProductService), `(this.selectedCategory() ?? 'all')`; `?.` throughout the specs | Safe access to possibly missing data; default for `null`/`undefined` | `?.` was used but not explained in L3 s.19 |
 | Spread `...` | `CartService` | Copies an array or object with one change (immutable update) | Not taught (audit §7). Needed so signals see a new value |
 | `Array.reduce` | Totals | Folds a list into one number | Appears only in an exercise (L1 s.40) |
-| `Map` | `shelf-mapping.ts` | Category → shelf lookup | Taught (JS-B s.88) |
-| `Record<K, V>` | `SHELF_SOURCE_CATEGORIES` | Object type with one key per shelf | Exercise only (L2 s.13) |
+| `Set` + spread | `categoriesOf()` | Removes duplicate category names | `Set` taught (JS-B), spread not taught (audit §7) |
+| `Record<K, V>` | `CATEGORY_LABELS` | Object type mapping slug → display name | Exercise only (L2 s.13) |
+| `<optgroup>` | Price dropdown | Groups the sort and range options inside one `<select>` | Plain HTML, not covered |
 | CSS: flexbox, `aspect-ratio`, `object-fit`, `-webkit-line-clamp`, `var(--bs-…)`, `:focus-visible` | Component CSS | Consistent cards and responsive cart lines | Beyond the audit's "basic CSS" list (Tier B); responsive layout is Tier C |
 | Bootstrap grid `row-cols-*`, utilities | Templates | Responsive product grid: 1/2/3/4 columns | Bootstrap allowed (decision A), never taught |
 
@@ -306,10 +309,10 @@ What was deliberately **not** used: standalone components, `inject()`, `input()`
 
 - **Audit decision 4/F vs. modern features:** the audit listed signals and the new control flow as excluded. You decided on 2026-10-14 to allow them for BlockBuster (the hybrid option). Standalone components and zoneless mode remain unused, as the course command requires.
 - **Git commands beyond the audit's basic list:** `git remote add` and `git push -u` were needed to connect the empty GitHub repository. No rebase, stash, force-push or history rewriting was used.
-- **Vitest quirk (test build only):** in `StorefrontComponent`, class **fields** initialised from imported constants (`readonly shelves = MEDIA_SHELVES`) were `undefined` inside Vitest unit tests. The same code worked in the real browser build (checked in headless Chrome). Changing them to **getters** fixed the tests. The root cause was not determined; it appears related to module evaluation order in the test bundle.
+- **Vitest quirk (test build only):** in `StorefrontComponent`, class **fields** initialised from imported constants (e.g. `readonly priceBands = PRICE_BANDS`) were `undefined` inside Vitest unit tests. The same code worked in the real browser build (checked in headless Chrome). Changing them to **getters** fixed the tests. The root cause was not determined; it appears related to module evaluation order in the test bundle.
 - **Event coalescing:** `provideZoneChangeDetection({ eventCoalescing: true })` (CLI default) batches change detection to the next animation frame. Users don't notice, but browser automation must wait briefly after typing or clicking before reading the page.
 - **Line endings:** Git on Windows warns "LF will be replaced by CRLF". This is harmless: the files are written with LF, and the system-wide Git setting `core.autocrlf=true` (from Git for Windows) stores LF in the repository and converts to CRLF on checkout.
-- **DummyJSON limitations:** no media products (stand-in mapping, spec §4); no currency (shown as USD); category renames on DummyJSON would hide products until `shelf-mapping.ts` is updated.
+- **DummyJSON limitations:** no currency (shown as USD); a new or renamed category gets a title-cased name until `category-mapping.ts` is updated; product images load from its CDN, so image URLs contain its domain even though no visible text does.
 - **Scale:** all products are filtered in the browser; this suits about 200 products, not thousands.
 - **Cart persistence:** in memory only, so a reload empties the cart and forgets the last order.
 - **Storefront reload:** returning to the shop recreates `StorefrontComponent`, which re-fetches the catalogue and resets the filters. The cart is unaffected.

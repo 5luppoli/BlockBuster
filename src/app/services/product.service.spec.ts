@@ -37,7 +37,7 @@ describe('ProductService', () => {
     request.flush(response([]));
   });
 
-  it('maps categories to shelves, drops unmapped ones and orders Books → Films → Records', () => {
+  it('keeps every product in API order and turns category slugs into readable names', () => {
     let result: Product[] = [];
     service.getProducts().subscribe((products) => (result = products));
 
@@ -45,25 +45,25 @@ describe('ProductService', () => {
       response([
         apiProduct(1, 'mobile-accessories'),
         apiProduct(2, 'beauty'),
-        apiProduct(3, 'smartphones'),
-        apiProduct(4, 'furniture'),
-        apiProduct(5, 'kitchen-accessories'),
+        apiProduct(3, 'womens-jewellery'),
+        apiProduct(4, 'vehicle'),
+        apiProduct(5, 'pet-supplies'),
       ]),
     );
 
-    expect(result.map((p) => [p.id, p.shelf])).toEqual([
-      [4, 'Books'],
-      [5, 'Books'],
-      [3, 'Films'],
-      [1, 'Records'],
+    expect(result.map((p) => [p.id, p.category])).toEqual([
+      [1, 'Mobile Accessories'],
+      [2, 'Beauty'],
+      [3, "Women's Jewellery"],
+      [4, 'Vehicles'],
+      [5, 'Pet Supplies'],
     ]);
     expect(result[0]).toEqual({
-      id: 4,
-      title: 'Item 4',
-      price: 40,
-      thumbnail: 't4.webp',
-      shelf: 'Books',
-      sourceCategory: 'furniture',
+      id: 1,
+      title: 'Item 1',
+      price: 10,
+      thumbnail: 't1.webp',
+      category: 'Mobile Accessories',
     });
   });
 

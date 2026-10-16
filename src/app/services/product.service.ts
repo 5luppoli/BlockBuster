@@ -3,7 +3,7 @@ import { Injectable } from '@angular/core';
 import { Observable, map } from 'rxjs';
 
 import { DummyJsonProductsResponse, Product } from '../models/product.model';
-import { toShelfProducts } from '../models/shelf-mapping';
+import { toProducts } from '../models/category-mapping';
 
 /**
  * All products in one request (`limit=0` = no paging), with only the fields
@@ -23,6 +23,6 @@ export class ProductService {
   getProducts(): Observable<Product[]> {
     return this.http
       .get<DummyJsonProductsResponse>(PRODUCTS_URL)
-      .pipe(map((response) => toShelfProducts(response.products ?? [])));
+      .pipe(map((response) => toProducts(response.products ?? [])));
   }
 }
