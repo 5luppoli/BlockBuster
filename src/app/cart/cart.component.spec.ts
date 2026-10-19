@@ -100,7 +100,7 @@ describe('CartComponent', () => {
     const message = page.querySelector('[data-testid="item-purchase-message"]')?.textContent?.replace(/\s+/g, ' ');
     expect(message).toContain('Simulated purchase complete: 2 × Lamp ($20.00)');
     expect(message).toContain('no payment was taken');
-    expect(cart.lines().map((l) => l.product.title)).toEqual(['Spoon']);
+    expect(cart.lines.map((l) => l.product.title)).toEqual(['Spoon']);
     expect(text('total')).toEqual(['$5.00']);
   });
 
@@ -111,8 +111,8 @@ describe('CartComponent', () => {
 
     (Array.from(page.querySelectorAll('button')).find((b) => b.textContent?.trim() === 'Buy All') as HTMLButtonElement).click();
 
-    expect(cart.isEmpty()).toBe(true);
-    expect(cart.lastOrder()?.total).toBe(10);
+    expect(cart.isEmpty).toBe(true);
+    expect(cart.lastOrder?.total).toBe(10);
     expect(navigate).toHaveBeenCalledWith(['/order-confirmation']);
   });
 
@@ -123,7 +123,7 @@ describe('CartComponent', () => {
     fixture.componentInstance.buyAll();
 
     expect(navigate).not.toHaveBeenCalled();
-    expect(cart.lastOrder()).toBeNull();
+    expect(cart.lastOrder).toBeNull();
     expect(Array.from(page.querySelectorAll('button')).some((b) => b.textContent?.trim() === 'Buy All')).toBe(false);
   });
 });

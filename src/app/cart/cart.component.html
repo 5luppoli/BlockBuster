@@ -1,7 +1,7 @@
 <h1 class="display-6 fw-bold mb-4">Your cart</h1>
 
 <div aria-live="polite">
-  @if (lastItemPurchase(); as purchase) {
+  @if (lastItemPurchase; as purchase) {
     <div class="alert alert-success" data-testid="item-purchase-message">
       <strong>Simulated purchase complete:</strong>
       {{ purchase.lines[0].quantity }} × {{ purchase.lines[0].product.title }}
@@ -10,7 +10,7 @@
   }
 </div>
 
-@if (cart.isEmpty()) {
+@if (cart.isEmpty) {
   <div class="card card-body text-center py-5 shadow-sm">
     <p class="fs-5 mb-3">Your cart is empty.</p>
     <div>
@@ -21,7 +21,7 @@
   <div class="row g-4">
     <div class="col-12 col-lg-8">
       <ul class="list-group shadow-sm" aria-label="Cart items">
-        @for (line of cart.lines(); track line.product.id) {
+        @for (line of cart.lines; track line.product.id) {
           <li class="list-group-item py-3 cart-line">
             <img
               class="cart-thumb"
@@ -93,17 +93,17 @@
           <h2 id="summary-heading" class="h5">Order summary</h2>
           <dl class="d-flex justify-content-between mb-1">
             <dt class="fw-normal">Items</dt>
-            <dd class="mb-0" data-testid="item-count">{{ cart.itemCount() }}</dd>
+            <dd class="mb-0" data-testid="item-count">{{ cart.itemCount }}</dd>
           </dl>
           <dl class="d-flex justify-content-between fs-5 mb-0">
             <dt>Total</dt>
-            <dd class="fw-bold mb-0" data-testid="total">{{ cart.total() | currency: 'USD' }}</dd>
+            <dd class="fw-bold mb-0" data-testid="total">{{ cart.total | currency: 'USD' }}</dd>
           </dl>
 
           <button
             type="button"
             class="btn btn-success btn-lg w-100 mt-3"
-            [disabled]="cart.isEmpty()"
+            [disabled]="cart.isEmpty"
             (click)="buyAll()"
           >
             Buy All

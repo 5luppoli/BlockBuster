@@ -1,4 +1,4 @@
-import { Component, signal } from '@angular/core';
+import { Component } from '@angular/core';
 import { Router } from '@angular/router';
 
 import { PurchaseSummary } from '../models/cart.model';
@@ -13,7 +13,7 @@ import { CartService } from '../services/cart.service';
 })
 export class CartComponent {
   /** The last single-item purchase, shown as a success message. */
-  readonly lastItemPurchase = signal<PurchaseSummary | null>(null);
+  lastItemPurchase: PurchaseSummary | null = null;
 
   constructor(
     readonly cart: CartService,
@@ -24,7 +24,7 @@ export class CartComponent {
   buy(productId: number): void {
     const purchase = this.cart.purchaseItem(productId);
     if (purchase) {
-      this.lastItemPurchase.set(purchase);
+      this.lastItemPurchase = purchase;
     }
   }
 

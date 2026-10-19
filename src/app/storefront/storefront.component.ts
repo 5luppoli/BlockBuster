@@ -1,4 +1,4 @@
-import { Component, OnInit, computed, signal } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 
 import { categoriesOf } from '../models/category-mapping';
 import { Product } from '../models/product.model';
@@ -26,35 +26,41 @@ export class StorefrontComponent implements OnInit {
     return PRICE_BANDS;
   }
 
-  readonly products = signal<Product[]>([]);
-  readonly loadState = signal<LoadState>('loading');
-  readonly lastAddedTitle = signal<string | null>(null);
-
-  /** The categories actually present in the catalogue, A → Z. */
-  readonly categories = computed(() => categoriesOf(this.products()));
+  products: Product[] = [];
+  loadState: LoadState = 'loading';
+  lastAddedTitle: string | null = null;
 
   // Filter inputs, bound to the form with [(ngModel)].
-  readonly searchTerm = signal('');
-  readonly selectedCategory = signal<CategoryChoice>(null);
-  readonly priceOption = signal<PriceOption>('none');
+  searchTerm = '';
+  selectedCategory: CategoryChoice = null;
+  priceOption: PriceOption = 'none';
 
-  /** The products on screen: always consistent with the catalogue and every filter. */
-  readonly visibleProducts = computed(() => {
-    const category = this.selectedCategory();
+  /** The categories actually present in the catalogue, A → Z. */
+  get categories(): string[] {
+    return categoriesOf(this.products);
+  }
 
-    return filterProducts(this.products(), {
-      searchTerm: this.searchTerm(),
+  /**
+   * The products on screen. A getter recalculates on every read, so the list is
+   * always consistent with the catalogue and every filter.
+   */
+  get visibleProducts(): Product[] {
+    const category = this.selectedCategory;
+
+    return filterProducts(this.products, {
+      searchTerm: this.searchTerm,
       category: category === 'all' ? null : category,
-      price: this.priceOption(),
+      price: this.priceOption,
     });
-  });
+  }
 
-  readonly hasActiveFilters = computed(
-    () =>
-      this.searchTerm().trim() !== '' ||
-      (this.selectedCategory() ?? 'all') !== 'all' ||
-      this.priceOption() !== 'none',
-  );
+  get hasActiveFilters(): boolean {
+    return (
+      this.searchTerm.trim() !== '' ||
+      (this.selectedCategory ?? 'all') !== 'all' ||
+      this.priceOption !== 'none'
+    );
+  }
 
   constructor(
     private productService: ProductService,
@@ -67,26 +73,28 @@ export class StorefrontComponent implements OnInit {
 
   /** Called on start and by the "Try again" button. */
   loadProducts(): void {
-    this.loadState.set('loading');
+    this.loadState = 'loading';
 
     // The HTTP Observable completes by itself, so no unsubscribe is needed (L5 s.4).
     this.productService.getProducts().subscribe({
       next: (products) => {
-        this.products.set(products);
-        this.loadState.set('loaded');
+        this.products = products;
+        this.loadState = 'loaded';
       },
-      error: () => this.loadState.set('error'),
+      error: () => {
+        this.loadState = 'error';
+      },
     });
   }
 
   resetFilters(): void {
-    this.searchTerm.set('');
-    this.selectedCategory.set(null);
-    this.priceOption.set('none');
+    this.searchTerm = '';
+    this.selectedCategory = null;
+    this.priceOption = 'none';
   }
 
   addToCart(product: Product): void {
     this.cartService.addProduct(product);
-    this.lastAddedTitle.set(product.title);
+    this.lastAddedTitle = product.title;
   }
 }

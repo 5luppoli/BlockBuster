@@ -170,8 +170,8 @@ describe('StorefrontComponent', () => {
 
       await type('#search', 'lamp');
       expect(cardTitles()).toEqual([]);
-      expect(fixture.componentInstance.priceOption()).toBe('10-25');
-      expect(fixture.componentInstance.selectedCategory()).toBe('Home Decoration');
+      expect(fixture.componentInstance.priceOption).toBe('10-25');
+      expect(fixture.componentInstance.selectedCategory).toBe('Home Decoration');
     });
 
     it('shows a no-match message, and Reset filters restores the full catalogue', async () => {
@@ -188,8 +188,8 @@ describe('StorefrontComponent', () => {
 
       expect(cardTitles().length).toBe(4);
       expect((page.querySelector('#search') as HTMLInputElement).value).toBe('');
-      expect(fixture.componentInstance.selectedCategory()).toBeNull();
-      expect(fixture.componentInstance.priceOption()).toBe('none');
+      expect(fixture.componentInstance.selectedCategory).toBeNull();
+      expect(fixture.componentInstance.priceOption).toBe('none');
     });
   });
 
@@ -200,8 +200,8 @@ describe('StorefrontComponent', () => {
     (page.querySelector('app-product-card button') as HTMLButtonElement).click();
     fixture.detectChanges();
 
-    expect(cart.itemCount()).toBe(1);
-    expect(cart.lines()[0].product.title).toBe('Plant Pot');
+    expect(cart.itemCount).toBe(1);
+    expect(cart.lines[0].product.title).toBe('Plant Pot');
     expect(page.textContent).toContain('Plant Pot added to cart.');
   });
 });

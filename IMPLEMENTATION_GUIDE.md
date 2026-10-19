@@ -104,9 +104,9 @@ The CLI declares each new component in `AppModule` automatically. All generated 
 |---|---|---|
 | Module system | **NgModule** (`AppModule` + `AppRoutingModule`), every component `standalone: false` | The audit's binding setup and the course command |
 | Change detection | zone.js (`provideZoneChangeDetection`) | `--zoneless=false` |
-| Constraint level | **Hybrid modern** (your decision, 2026-10-14): the audit's setup plus signals, `computed()`, `@if`/`@for`/`@switch` and `provideHttpClient()` | The brief asks for modern Angular. Audit decision 4/F listed these as excluded; you chose to allow them for BlockBuster |
+| Constraint level | **Hybrid modern** (your decision, 2026-10-14): the audit's setup plus `@if`/`@for`/`@switch` and `provideHttpClient()`. **No signals** (your decision, 2026-10-19) | The brief asks for modern Angular. Audit decision 4/F listed these as excluded; you chose to allow the control flow for BlockBuster, then removed signals so all state uses taught techniques |
 | Styling | Bootstrap 5 **CSS only** (no Bootstrap JS) + small component CSS files | Your decision, 2026-10-14 (audit decision A) |
-| State | Angular **signals** in a root service; no NgRx | One small, shared cart; signals are built in |
+| State | Plain **properties and getters**, shared cart in a root service; no signals, no NgRx | Taught (L2 s.17, L3 s.15). zone.js re-renders after every event, so no reactive wrapper is needed |
 | Dependency injection | Constructor injection, as taught (L4 s.1–3) | Fully supported. `inject()` would be the modern alternative but adds nothing here |
 | Component communication | `@Input` / `@Output` + `EventEmitter` (L3 s.18–20) | Taught and still supported |
 | Forms | Template-driven `[(ngModel)]` (L4 s.16) | Taught. No reactive forms were needed (audit decision 5) |
@@ -128,7 +128,7 @@ src/
     │   └── cart.model.ts             CartItem, CartLine, PurchaseSummary
     ├── services/
     │   ├── product.service.ts        GET from DummyJSON → Product[]
-    │   └── cart.service.ts           shared cart state (signals) and purchase rules
+    │   └── cart.service.ts           shared cart state (private fields + getters) and purchase rules
     ├── header/                       brand, navigation, cart badge
     ├── storefront/                   shop page + product-filter.ts (pure filter logic)
     ├── product-card/                 one product (presentational)
@@ -141,11 +141,11 @@ src/
 | Part | Type | Responsibility |
 |---|---|---|
 | `AppComponent` | Component | Layout only: `<app-header>`, `<router-outlet>` |
-| `HeaderComponent` | Component | Brand, Shop/Cart links with `routerLinkActive`, live `cart.itemCount()` badge |
+| `HeaderComponent` | Component | Brand, Shop/Cart links with `routerLinkActive`, live `cart.itemCount` badge |
 | `StorefrontComponent` | Component (route `/`) | Loads products, holds the filter state, shows loading/error/empty/no-match states, adds to the cart |
 | `ProductCardComponent` | Component | Displays one `Product` (`@Input`), emits `addToCart` (`@Output`). No service access |
-| `CartComponent` | Component (route `/cart`) | Shows `cart.lines()`, +1, −1, Remove, Buy, Buy All; navigates to the confirmation |
-| `OrderConfirmationComponent` | Component (route `/order-confirmation`) | Shows `cart.lastOrder()`, or "No recent purchase" |
+| `CartComponent` | Component (route `/cart`) | Shows `cart.lines`, +1, −1, Remove, Buy, Buy All; navigates to the confirmation |
+| `OrderConfirmationComponent` | Component (route `/order-confirmation`) | Shows `cart.lastOrder`, or "No recent purchase" |
 | `ProductService` | Service (`providedIn: 'root'`) | The only place that knows the DummyJSON URL and response shape |
 | `CartService` | Service (`providedIn: 'root'`) | The only place that changes the cart: add, +1, −1, remove, buy, buy all |
 | `product-filter.ts` | Plain TypeScript | `PRICE_BANDS` and `filterProducts()`: pure, unit-tested logic |
@@ -170,8 +170,8 @@ StorefrontComponent.ngOnInit()
     → ProductService.getProducts()
       → HttpClient.get<DummyJsonProductsResponse>(PRODUCTS_URL)          one GET, ~200 products
       → pipe(map(r => toProducts(r.products ?? [])))                     every product, slug → readable category, API order
-    → subscribe({ next: products.set(...), loadState = 'loaded'; error: loadState = 'error' })
-  → template: @switch (loadState()) → @for (product of visibleProducts()) → <app-product-card [product]="product">
+    → subscribe({ next: products = ..., loadState = 'loaded'; error: loadState = 'error' })
+  → template: @switch (loadState) → @for (product of visibleProducts) → <app-product-card [product]="product">
 ```
 
 - **URL:** `https://dummyjson.com/products?limit=0&select=id,title,price,category,thumbnail`. `limit=0` returns every product; `select` returns only the fields the shop uses.
@@ -181,21 +181,21 @@ StorefrontComponent.ngOnInit()
 
 ## 7. Search and filters
 
-State in `StorefrontComponent`, each a writable signal bound to a form field with `[(ngModel)]`:
+State in `StorefrontComponent`, each a plain property bound to a form field with `[(ngModel)]` (L4 s.16):
 
-| Signal | Field | Empty value |
+| Property | Field | Empty value |
 |---|---|---|
 | `searchTerm` | `<input type="search">` | `''` |
 | `selectedCategory` | `<select id="category">` | `null` (placeholder "Select a category…") or `'all'` ("All categories") |
 | `priceOption` | `<select id="price">` | `'none'` ("Any price") |
 
-The category options come from `categories = computed(() => categoriesOf(this.products()))`, so the dropdown only lists categories that actually have products. The price dropdown has two `<optgroup>`s: **Sort** (`price-asc`, `price-desc`) and **Price range** (the `id` of each entry in `PRICE_BANDS`).
+The category options come from the getter `get categories() { return categoriesOf(this.products); }`, so the dropdown only lists categories that actually have products. The price dropdown has two `<optgroup>`s: **Sort** (`price-asc`, `price-desc`) and **Price range** (the `id` of each entry in `PRICE_BANDS`).
 
-Derived state with `computed()`:
+Derived state with getters (L2 s.17):
 
 ```ts
-readonly visibleProducts = computed(() => filterProducts(this.products(), { searchTerm: ..., category: ..., price: ... }));
-readonly hasActiveFilters = computed(() => ...);   // enables "Reset filters"
+get visibleProducts(): Product[] { return filterProducts(this.products, { searchTerm: ..., category: ..., price: ... }); }
+get hasActiveFilters(): boolean { return ...; }   // enables "Reset filters"
 ```
 
 `filterProducts()` (in `product-filter.ts`) keeps a product only if **all** active conditions pass (logical AND), then sorts if asked:
@@ -207,36 +207,41 @@ readonly hasActiveFilters = computed(() => ...);   // enables "Reset filters"
 
 The bands were chosen from the live price spread (2026-10-16: 46 products under $10, 38 at $10–25, 33 at $25–50, 16 at $50–100, 28 at $100–500, 7 at $500–1,000, 26 at $1,000+).
 
-Because every input is a signal and the result is a `computed()`, changing one filter recalculates the list from **all** current values. No filter can overwrite another, and the list can never be out of date. **Reset filters** sets the three signals back to their empty values.
+`visibleProducts` is a getter, so it is recalculated from **all** current values every time the template reads it. `[(ngModel)]` updates a property, zone.js then runs change detection, and the template reads the getter again. No filter can overwrite another, and the list can never be out of date. **Reset filters** sets the three properties back to their empty values.
+
+The cost is that the getter runs on every change-detection pass, not only when a filter changes. Filtering about 200 products takes well under a millisecond, so this is not noticeable. With thousands of products, the list would instead be stored in a field and recalculated by a method called from `(ngModelChange)`.
 
 ## 8. Shared cart state
 
 `CartService` is `providedIn: 'root'`: Angular creates **one** instance for the whole app. The header, storefront and cart page all receive that same instance, so they always show the same cart. Because the service outlives the route components, the cart survives navigation. It does not survive a full reload (out of scope, spec §3.2).
 
 ```ts
-private readonly itemsState = signal<CartItem[]>([]);          // the only writable state
-readonly lines     = computed(() => items with subtotal = roundToCents(price × quantity));
-readonly itemCount = computed(() => sum of quantities);         // header badge
-readonly total     = computed(() => roundToCents(sum of subtotals));
-readonly isEmpty   = computed(() => items.length === 0);
+private items: CartItem[] = [];                 // the only changeable cart state
+private lastOrderValue: PurchaseSummary | null = null;
+get lines()     { items with subtotal = roundToCents(price × quantity) }
+get itemCount() { sum of quantities }            // header badge
+get total()     { roundToCents(sum of subtotals) }
+get isEmpty()   { items.length === 0 }
+get lastOrder() { lastOrderValue }               // no setter: read-only outside
 ```
 
 Rules:
 
-- **Encapsulation:** components read signals, but only the service's methods change them (`addProduct`, `increaseQuantity`, `removeItem`, `purchaseItem`, `purchaseAll`).
-- **Immutable updates:** each change creates a new array or object (`[...items, newItem]`, `items.map(...)`, `items.filter(...)`, `{ ...item, quantity: item.quantity + 1 }`). Signals notice a change when the value is a new reference.
+- **Encapsulation:** the fields are `private` and the getters have no setters, so components can read the cart but only the service's methods change it (`addProduct`, `increaseQuantity`, `decreaseQuantity`, `removeItem`, `purchaseItem`, `purchaseAll`).
+- **Always up to date:** the getters recalculate on every read. Nothing is stored twice, so the subtotals, count and total cannot drift from the items. After any click, zone.js runs change detection and every component that shows the cart (header badge, cart page) reads the new values.
+- **Immutable updates:** each change assigns a new array or object (`[...items, newItem]`, `items.map(...)`, `items.filter(...)`, `{ ...item, quantity: item.quantity + 1 }`). Getters would also work with in-place changes; new copies keep earlier `PurchaseSummary` objects from changing afterwards.
 - **No duplicates:** `addProduct()` checks for the product id first and calls `increaseQuantity()` if it is already in the cart.
 - **Valid quantities:** quantities only start at 1 and grow by 1. Remove deletes the whole line, so a line with 0 units cannot exist.
 - **Money:** `roundToCents()` (`Math.round(x * 100) / 100`) avoids floating-point artefacts such as `0.1 + 0.2 = 0.30000000000000004`. Display uses the `currency: 'USD'` pipe (L4 s.13).
 
-This is the signal-based version of the course's `BehaviorSubject` shared-state pattern (L5 s.13): one private writable source, read-only access for consumers.
+This follows the idea of the course's `BehaviorSubject` shared-state pattern (L5 s.13): one private writable source, read-only access for consumers. A `BehaviorSubject` was not used because it would need the `async` pipe or manual subscribe/unsubscribe in three components, with no benefit while zone.js already re-renders after every event.
 
 ## 9. Purchases and confirmation
 
 **Buy (one line)**, `CartComponent.buy(productId)` → `CartService.purchaseItem(productId)`:
 
 1. Find the line (with its current quantity and subtotal). If it is missing, return `null` (nothing happens).
-2. Remove that line only. The other lines, `total` and `itemCount` update automatically through `computed()`.
+2. Remove that line only. The other lines stay, and `total` and `itemCount` are correct on the next read because they are getters.
 3. Return a `PurchaseSummary`. The component stores it in `lastItemPurchase` and shows "Simulated purchase complete: 2 × Lamp ($20.00). This is a demo: no payment was taken."
 
 **Buy All**, `CartComponent.buyAll()` → `CartService.purchaseAll()`:
@@ -245,7 +250,7 @@ This is the signal-based version of the course's `BehaviorSubject` shared-state 
 2. Build a `PurchaseSummary` (lines, item count, total), store it in `lastOrder`, then empty the cart.
 3. The component navigates with `this.router.navigate(['/order-confirmation'])` (L4 s.8).
 
-**Confirmation page:** `@if (cart.lastOrder(); as order)` shows the success message, the purchased lines, the count and the total, plus "Back to the shop". Without a recorded order (for example, the URL opened directly after a reload) it shows "No recent purchase". A success message can only appear after `purchaseAll()` has completed.
+**Confirmation page:** `@if (cart.lastOrder; as order)` shows the success message, the purchased lines, the count and the total, plus "Back to the shop". Without a recorded order (for example, the URL opened directly after a reload) it shows "No recent purchase". A success message can only appear after `purchaseAll()` has completed.
 
 Purchases are synchronous and in memory: there is no network call and no failure path. Every message says the purchase is simulated.
 
@@ -253,7 +258,7 @@ Purchases are synchronous and in memory: there is no network call and no failure
 
 ### 10.1 Unit and component tests (Vitest, `npm test`)
 
-Angular 21's default test runner is **Vitest** with jsdom (`@angular/build:unit-test`). Last run (2026-10-16): **10 files, 60 tests, all passing**.
+Angular 21's default test runner is **Vitest** with jsdom (`@angular/build:unit-test`). Last run (2026-10-19, after removing signals): **10 files, 60 tests, all passing**. `fixture.detectChanges()` also runs Angular's dev-mode `checkNoChanges`, so the passing component tests show that the getters cause no "expression changed after it was checked" errors.
 
 | Spec file | What it proves |
 |---|---|
@@ -284,18 +289,14 @@ To repeat it by hand, run `npm start` and walk through the table in PROJECT_SPEC
 
 | Feature used | Where | What it does | Course concept it replaces or extends |
 |---|---|---|---|
-| `signal()` | `CartService`, `StorefrontComponent`, `CartComponent` | A value container that tells Angular when it changes. Read it with `count()`, change it with `.set()` / `.update()` | Plain component properties (L3 s.15), plus `BehaviorSubject` shared state (L5 s.13) without manual subscribe/unsubscribe |
-| `computed()` | `lines`, `total`, `itemCount`, `visibleProducts`, `categories` | A read-only value derived from other signals, recalculated only when they change | Recalculating in methods after every change (the filtering/sorting methods of L3 s.17) |
-| `.asReadonly()` | `CartService.lastOrder` | Exposes a signal that consumers cannot `.set()` | `private` fields + getters (L2 s.17) |
-| `[(ngModel)]="aSignal"` | Filter fields | Two-way binding works directly with a writable signal (Angular ≥ 17.2) | `[(ngModel)]` with a plain property (L4 s.16) |
 | `@if`, `@for (…; track …)`, `@switch` | All templates | Built-in template control flow. `track` tells Angular which item is which, so it re-renders only what changed | `*ngIf`, `*ngFor`, `ngSwitch` (L3 s.16), which are deprecated in recent Angular |
-| `@if (x(); as value)` | Messages, confirmation | Stores the condition's value in a local template variable | `*ngIf="x as value"` |
+| `@if (x; as value)` | Messages, confirmation | Stores the condition's value in a local template variable | `*ngIf="x as value"` |
 | `provideHttpClient()` | `AppModule` | Registers `HttpClient` | `HttpClientModule` (L4 s.4), now deprecated; the injected `HttpClient` is identical |
 | `subscribe({ next, error })` | `StorefrontComponent` | The observer-object form | The two-callback `subscribe(next, err)` form (NG-B s.53), deprecated in RxJS 7 |
 | `@Input({ required: true })` | `ProductCardComponent` | Compile-time error if the parent forgets the input | `@Input()` (L3 s.18) |
 | Route `title` | Routes | Sets the browser-tab title per route | Not covered |
-| `?.` and `??` | `response.products ?? []` (ProductService), `(this.selectedCategory() ?? 'all')`; `?.` throughout the specs | Safe access to possibly missing data; default for `null`/`undefined` | `?.` was used but not explained in L3 s.19 |
-| Spread `...` | `CartService` | Copies an array or object with one change (immutable update) | Not taught (audit §7). Needed so signals see a new value |
+| `?.` and `??` | `response.products ?? []` (ProductService), `(this.selectedCategory ?? 'all')`; `?.` throughout the specs | Safe access to possibly missing data; default for `null`/`undefined` | `?.` was used but not explained in L3 s.19 |
+| Spread `...` | `CartService` | Copies an array or object with one change (immutable update) | Not taught (audit §7). Keeps recorded purchase summaries from changing later |
 | `Array.reduce` | Totals | Folds a list into one number | Appears only in an exercise (L1 s.40) |
 | `Set` + spread | `categoriesOf()` | Removes duplicate category names | `Set` taught (JS-B), spread not taught (audit §7) |
 | `Record<K, V>` | `CATEGORY_LABELS` | Object type mapping slug → display name | Exercise only (L2 s.13) |
@@ -303,11 +304,14 @@ To repeat it by hand, run `npm start` and walk through the table in PROJECT_SPEC
 | CSS: flexbox, `aspect-ratio`, `object-fit`, `-webkit-line-clamp`, `var(--bs-…)`, `:focus-visible` | Component CSS | Consistent cards and responsive cart lines | Beyond the audit's "basic CSS" list (Tier B); responsive layout is Tier C |
 | Bootstrap grid `row-cols-*`, utilities | Templates | Responsive product grid: 1/2/3/4 columns | Bootstrap allowed (decision A), never taught |
 
-What was deliberately **not** used: standalone components, `inject()`, `input()`/`output()` signal functions, `effect()`, zoneless mode, the `async` pipe, NgRx, reactive forms, interceptors and guards. Each would add something to learn without a practical benefit at this size.
+State uses only taught techniques: plain properties (L3 s.15), `private` fields and getters (L2 s.17) and `[(ngModel)]` on a property (L4 s.16). See §7 and §8.
+
+What was deliberately **not** used: signals (`signal()`, `computed()`, `effect()`, `input()`/`output()`; removed on 2026-10-19), standalone components, `inject()`, zoneless mode, the `async` pipe, NgRx, reactive forms, interceptors and guards. Each would add something to learn without a practical benefit at this size.
 
 ## 12. Compatibility notes, known issues and limitations
 
-- **Audit decision 4/F vs. modern features:** the audit listed signals and the new control flow as excluded. You decided on 2026-10-14 to allow them for BlockBuster (the hybrid option). Standalone components and zoneless mode remain unused, as the course command requires.
+- **Audit decision 4/F vs. modern features:** the audit listed signals and the new control flow as excluded. You decided on 2026-10-14 to allow both for BlockBuster (the hybrid option), then on 2026-10-19 to remove signals again. Signal state was replaced by plain properties and getters, with no change in behaviour (same 60 tests passing). The new control flow stays. Standalone components and zoneless mode remain unused, as the course command requires.
+- **No signals means zone.js is required:** the screen updates because zone.js runs change detection after every event and HTTP response. Switching to zoneless mode would stop the getters from refreshing the view; it would need signals or manual change detection.
 - **Git commands beyond the audit's basic list:** `git remote add` and `git push -u` were needed to connect the empty GitHub repository. No rebase, stash, force-push or history rewriting was used.
 - **Vitest quirk (test build only):** in `StorefrontComponent`, class **fields** initialised from imported constants (e.g. `readonly priceBands = PRICE_BANDS`) were `undefined` inside Vitest unit tests. The same code worked in the real browser build (checked in headless Chrome). Changing them to **getters** fixed the tests. The root cause was not determined; it appears related to module evaluation order in the test bundle.
 - **Event coalescing:** `provideZoneChangeDetection({ eventCoalescing: true })` (CLI default) batches change detection to the next animation frame. Users don't notice, but browser automation must wait briefly after typing or clicking before reading the page.
@@ -332,6 +336,8 @@ Each milestone was built, tested, reviewed with `git status` / `git diff --cache
 | 7 | `feat: implement simulated Buy, Buy All and purchase confirmation` | M5: purchases |
 | 8 | `style: label cart subtotals and refine filter and confirmation details` | M6: visual refinement |
 | 9 | `docs: add implementation guide and project README` | M7: documentation |
+| 10 | `feat: apply client feedback on categories, price filter and cart` | Client feedback (2026-10-16) |
+| 11 | `refactor: replace signals with plain properties and getters` | No-signals decision (2026-10-19) |
 
 Routine for each checkpoint:
 
@@ -380,6 +386,7 @@ Slide references come from the audit (`Frontend-Knowledge-Audit.md` §3–§5, �
 | `map` in `pipe()` | L5 s.5 |
 | HTTP Observables complete by themselves | L5 s.4 |
 | `BehaviorSubject` shared state (the idea behind the cart service) | L5 s.13 |
+| `private` fields and `get` accessors (cart and filter state) | L2 s.17 |
 | DummyJSON as the data source | L4 s.12, L5 s.9 |
 | Literal unions, interfaces, `type`, intersections | L2 s.5–10 |
 | Arrow functions, modules | L2 s.12, s.14 |

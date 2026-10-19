@@ -180,6 +180,7 @@ No message may claim that a real payment was processed or that a real order was 
 - NFR-5 Dependencies: Angular plus Bootstrap CSS only (no Bootstrap JavaScript, no other UI library).
 - NFR-6 Code: strict TypeScript, no `any`, typed API responses.
 - NFR-7 Build: `npm run build` succeeds with no errors. Unit tests pass with `npm test`.
+- NFR-8 State: no Angular signals (decision of 2026-10-19). State is held in plain properties, and derived values (filtered list, subtotals, totals) are getters.
 
 ## 8. Acceptance criteria
 

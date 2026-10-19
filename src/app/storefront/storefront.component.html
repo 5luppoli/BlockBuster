@@ -4,7 +4,7 @@
     <p class="lead mb-0">Find something you like and add it to your cart.</p>
   </div>
 
-  @switch (loadState()) {
+  @switch (loadState) {
     @case ('loading') {
       <p class="text-center py-5" role="status">
         <span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
@@ -24,7 +24,7 @@
     }
 
     @case ('loaded') {
-      @if (products().length === 0) {
+      @if (products.length === 0) {
         <p class="text-center py-5 fs-5">The catalogue is empty right now. Please come back later.</p>
       } @else {
         <!-- NgForm (from FormsModule) stops the browser from submitting/reloading. -->
@@ -48,7 +48,7 @@
               <select id="category" name="category" class="form-select" [(ngModel)]="selectedCategory">
                 <option [ngValue]="null" disabled>Select a category…</option>
                 <option ngValue="all">All categories</option>
-                @for (category of categories(); track category) {
+                @for (category of categories; track category) {
                   <option [ngValue]="category">{{ category }}</option>
                 }
               </select>
@@ -74,12 +74,12 @@
 
         <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
           <p class="mb-0 flex-grow-1" aria-live="polite" data-testid="result-count">
-            Showing <strong>{{ visibleProducts().length }}</strong> of {{ products().length }} products
+            Showing <strong>{{ visibleProducts.length }}</strong> of {{ products.length }} products
           </p>
           <button
             type="button"
             class="btn btn-outline-secondary btn-sm"
-            [disabled]="!hasActiveFilters()"
+            [disabled]="!hasActiveFilters"
             (click)="resetFilters()"
           >
             Reset filters
@@ -87,7 +87,7 @@
         </div>
 
         <div aria-live="polite">
-          @if (lastAddedTitle(); as title) {
+          @if (lastAddedTitle; as title) {
             <div class="alert alert-success py-2 d-flex flex-wrap gap-2 align-items-center">
               <span class="flex-grow-1"><strong>{{ title }}</strong> added to cart.</span>
               <a routerLink="/cart" class="alert-link">View cart</a>
@@ -95,14 +95,14 @@
           }
         </div>
 
-        @if (visibleProducts().length === 0) {
+        @if (visibleProducts.length === 0) {
           <div class="text-center py-5">
             <p class="fs-5">No products match your filters.</p>
             <button type="button" class="btn btn-secondary" (click)="resetFilters()">Reset filters</button>
           </div>
         } @else {
           <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-xl-4 g-4">
-            @for (product of visibleProducts(); track product.id) {
+            @for (product of visibleProducts; track product.id) {
               <div class="col">
                 <app-product-card [product]="product" (addToCart)="addToCart($event)"></app-product-card>
               </div>
